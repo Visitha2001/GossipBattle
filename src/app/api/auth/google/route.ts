@@ -66,6 +66,8 @@ export async function POST(req: Request) {
         name: user.name,
         email: user.email,
         avatar: user.avatar,
+        handle: user.handle,
+        handleColor: user.handleColor,
       }
     });
 

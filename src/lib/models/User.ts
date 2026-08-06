@@ -5,6 +5,8 @@ export interface IUser extends Document {
   email: string;
   name: string;
   avatar?: string;
+  handle?: string;
+  handleColor?: string;
 }
 
 const UserSchema = new Schema<IUser>(
@@ -13,11 +15,17 @@ const UserSchema = new Schema<IUser>(
     email: { type: String, required: true, unique: true },
     name: { type: String, required: true },
     avatar: { type: String },
+    handle: { type: String, unique: true, sparse: true },
+    handleColor: { type: String },
   },
   {
     timestamps: true,
   }
 );
 
-// We need to check if the model already exists to prevent OverwriteModelError in Next.js
-export const User: Model<IUser> = mongoose.models.User || mongoose.model<IUser>("User", UserSchema);
+// Delete the existing model to prevent HMR issues where old schema is used
+if (mongoose.models.User) {
+  delete mongoose.models.User;
+}
+
+export const User: Model<IUser> = mongoose.model<IUser>("User", UserSchema);

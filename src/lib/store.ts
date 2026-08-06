@@ -5,6 +5,8 @@ export interface User {
   name: string;
   email: string;
   avatar?: string;
+  handle?: string;
+  handleColor?: string;
 }
 
 interface AuthState {
