@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { GoogleLogin } from "@react-oauth/google";
 import { useAuthStore } from "@/lib/store";
+import { api } from "@/lib/api";
 import { ThemeToggle } from "./ThemeToggle";
 import { Button } from "./ui/button";
 import { LogOut } from "lucide-react";
@@ -25,11 +26,8 @@ export function Header() {
   useEffect(() => {
     async function checkAuth() {
       try {
-        const res = await fetch("/api/auth/me");
-        if (res.ok) {
-          const data = await res.json();
-          setUser(data.user);
-        }
+        const data = await api.auth.me();
+        setUser(data.user);
       } catch (error) {
         console.error("Auth check failed", error);
       } finally {
@@ -41,16 +39,8 @@ export function Header() {
 
   const handleGoogleSuccess = async (credentialResponse: any) => {
     try {
-      const res = await fetch("/api/auth/google", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ credential: credentialResponse.credential }),
-      });
-      
-      if (res.ok) {
-        const data = await res.json();
-        setUser(data.user);
-      }
+      const data = await api.auth.google(credentialResponse.credential);
+      setUser(data.user);
     } catch (error) {
       console.error("Login failed", error);
     }
@@ -58,7 +48,7 @@ export function Header() {
 
   const handleLogout = async () => {
     try {
-      await fetch("/api/auth/logout", { method: "POST" });
+      await api.auth.logout();
       setUser(null);
     } catch (error) {
       console.error("Logout failed", error);

@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useState, useEffect } from "react";
 import { useAuthStore } from "@/lib/store";
+import { api } from "@/lib/api";
 
 export function OnboardingModal() {
   const { user, setUser } = useAuthStore();
@@ -34,21 +35,10 @@ export function OnboardingModal() {
     setIsLoading(true);
 
     try {
-      const res = await fetch("/api/user/onboarding", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ handle, handleColor }),
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        setUser(data.user);
-      } else {
-        setError(data.message || "Something went wrong");
-      }
-    } catch (err) {
-      setError("Network error. Please try again.");
+      const data = await api.user.onboarding({ handle, handleColor });
+      setUser(data.user);
+    } catch (err: any) {
+      setError(err.message || "Network error. Please try again.");
     } finally {
       setIsLoading(false);
     }
