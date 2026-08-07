@@ -5,7 +5,8 @@ import { useAuthStore } from "@/lib/store";
 import { api } from "@/lib/api";
 import { CommentItem } from "./CommentItem";
 import { BattleItem } from "./BattleItem";
-import { Swords, Loader2 } from "lucide-react";
+import { Swords, Loader2, SmilePlus } from "lucide-react";
+import EmojiPicker from 'emoji-picker-react';
 
 export function CommentSection({ postId, postAuthorId }: { postId: string, postAuthorId: string }) {
   const { user } = useAuthStore();
@@ -13,6 +14,7 @@ export function CommentSection({ postId, postAuthorId }: { postId: string, postA
   const [newComment, setNewComment] = useState("");
   const [replyingTo, setReplyingTo] = useState<{ id: string; handle: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   const fetchComments = async () => {
     try {
@@ -76,7 +78,22 @@ export function CommentSection({ postId, postAuthorId }: { postId: string, postA
               <button type="button" onClick={() => setReplyingTo(null)} className="hover:text-foreground">Cancel</button>
             </div>
           )}
-          <div className="flex gap-2">
+          <div className="flex gap-2 relative">
+            <button 
+              type="button" 
+              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+              className="p-2 bg-muted rounded-md text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <SmilePlus size={16} />
+            </button>
+            {showEmojiPicker && (
+              <div className="absolute bottom-10 left-0 z-50">
+                <EmojiPicker onEmojiClick={(emojiObject) => {
+                  setNewComment((prev) => prev + emojiObject.emoji);
+                  setShowEmojiPicker(false);
+                }} />
+              </div>
+            )}
             <input
               type="text"
               value={newComment}

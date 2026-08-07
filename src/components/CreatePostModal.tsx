@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useAuthStore } from "@/lib/store";
 import { api } from "@/lib/api";
 import { X, Image as ImageIcon, SmilePlus, Loader2 } from "lucide-react";
+import EmojiPicker from 'emoji-picker-react';
 
 const FEELINGS = ["Happy", "Excited", "Angry", "Sad", "Cool", "Loved", "Crazy", "Tired"];
 
@@ -14,6 +15,7 @@ export function CreatePostModal({ isOpen, onClose, onPostCreated, editPost }: { 
   const [existingImageUrls, setExistingImageUrls] = useState<string[]>(editPost?.imageUrls || (editPost?.imageUrl ? [editPost.imageUrl] : []));
   const [feeling, setFeeling] = useState<string>(editPost?.feeling || "");
   const [loading, setLoading] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [searchType, setSearchType] = useState<"mention" | "hashtag" | null>(null);
@@ -104,6 +106,21 @@ export function CreatePostModal({ isOpen, onClose, onPostCreated, editPost }: { 
     setTimeout(() => {
       textareaRef.current?.focus();
     }, 0);
+  };
+
+  const onEmojiClick = (emojiObject: any) => {
+    if (!textareaRef.current) return;
+    
+    const cursor = textareaRef.current.selectionStart;
+    const text = content;
+    const newText = text.slice(0, cursor) + emojiObject.emoji + text.slice(cursor);
+    setContent(newText);
+    
+    // If the emoji picker was opened next to feeling, also add it to feeling?
+    // The requirement says "add emogies to feelings of posts". I'll just append it to feeling.
+    // Wait, the prompt says "add emogies to feelings of posts". Let's update the feelings array or allow custom feeling with emoji. 
+    // I'll add an option to insert emoji in text or use emoji picker for feeling. 
+    // For simplicity, let's just append the emoji to the text content.
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -241,20 +258,31 @@ export function CreatePostModal({ isOpen, onClose, onPostCreated, editPost }: { 
             )}
           </div>
           
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-4 relative">
             <div className="flex items-center gap-2">
-              <SmilePlus size={18} className="text-muted-foreground" />
-              <select 
+              <button 
+                type="button" 
+                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <SmilePlus size={18} />
+              </button>
+              <input 
+                type="text"
                 value={feeling} 
                 onChange={(e) => setFeeling(e.target.value)}
-                className="bg-transparent border border-input rounded-md px-2 py-1 text-sm text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-              >
-                <option value="">No feeling</option>
-                {FEELINGS.map(f => (
-                  <option key={f} value={f}>Feeling {f}</option>
-                ))}
-              </select>
+                placeholder="Feeling..."
+                className="bg-transparent border border-input rounded-md px-2 py-1 text-sm text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring w-32"
+              />
             </div>
+            {showEmojiPicker && (
+              <div className="absolute top-10 left-0 z-50">
+                <EmojiPicker onEmojiClick={(emojiObject) => {
+                  setFeeling((prev) => prev + emojiObject.emoji);
+                  setShowEmojiPicker(false);
+                }} />
+              </div>
+            )}
           </div>
           
           <div className="flex items-center justify-between">

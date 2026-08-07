@@ -157,6 +157,36 @@ export const api = {
       if (!res.ok) throw new Error("Failed to fetch users");
       return res.json();
     },
+    follow: async (targetUserId: string) => {
+      const res = await fetch("/api/users/follow", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetUserId }),
+      });
+      if (!res.ok) throw new Error("Failed to follow user");
+      return res.json();
+    },
+    suggestions: async () => {
+      const res = await fetch("/api/users/suggestions");
+      if (!res.ok) throw new Error("Failed to fetch suggestions");
+      return res.json();
+    },
+  },
+  notifications: {
+    getAll: async () => {
+      const res = await fetch("/api/notifications");
+      if (!res.ok) throw new Error("Failed to fetch notifications");
+      return res.json();
+    },
+    markRead: async (notificationId?: string) => {
+      const res = await fetch("/api/notifications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notificationId }),
+      });
+      if (!res.ok) throw new Error("Failed to mark notifications as read");
+      return res.json();
+    },
   },
 };
 

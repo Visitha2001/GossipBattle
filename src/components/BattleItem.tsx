@@ -100,7 +100,7 @@ export function BattleItem({ battle, postAuthorId, onUpdate, leftComments, right
       <div className="bg-muted/30 p-3 border-b border-border flex justify-between items-center">
         <div className="text-sm font-bold text-muted-foreground flex items-center gap-2">
           <span>
-            Battle created by <span className="text-foreground">@{battle.author?.handle?.replace('@', '')}</span>
+            Battle created by <span className="text-foreground" style={{ color: battle.author?.handleColor }}>@{battle.author?.handle?.replace('@', '')}</span>
             {parentCommentAuthor && (
               <> on <span className="text-foreground">@{parentCommentAuthor.replace('@', '')}</span>'s comment</>
             )}
@@ -125,8 +125,10 @@ export function BattleItem({ battle, postAuthorId, onUpdate, leftComments, right
         </div>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-0">
-        <div className="flex-1 bg-red-500/5 border-r border-border p-3">
+      <div className="flex flex-col md:flex-row gap-0 relative">
+        <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 bg-background rounded-full w-12 h-12 items-center justify-center border-2 border-border shadow-lg font-extrabold italic text-xl bg-gradient-to-br from-red-500 to-blue-500 text-transparent bg-clip-text">VS</div>
+        
+        <div className="flex-1 bg-red-500/5 border-r border-border p-3 relative">
           <h4 className="text-red-500 font-bold mb-2 text-center border-b border-red-500/20 pb-2">Agree</h4>
           
           <div className="space-y-2 mb-4 text-left">

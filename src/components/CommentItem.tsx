@@ -124,7 +124,7 @@ export function CommentItem({ comment, postAuthorId, onReply, onUpdate, replies 
             <div className="absolute top-0 -left-1 w-2 h-2 bg-muted rounded-br-sm" style={{ clipPath: 'polygon(100% 0, 0 0, 100% 100%)' }}></div>
             
             <div className="font-bold mr-2 text-xs mb-1 flex items-center justify-between">
-              <span>@{comment.author?.handle?.replace('@', '')}</span>
+              <span style={{ color: comment.author?.handleColor }}>@{comment.author?.handle?.replace('@', '')}</span>
               <div className="flex items-center">
                 {comment.isHidden && isPostAuthor && (
                   <span className="text-[10px] bg-destructive/20 text-destructive px-1 rounded ml-2 border border-destructive/30 mr-2">Hidden</span>

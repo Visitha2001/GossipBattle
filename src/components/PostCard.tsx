@@ -7,7 +7,8 @@ import { CommentSection } from "./CommentSection";
 import { ConfirmModal } from "./ConfirmModal";
 import { ShareModal } from "./ShareModal";
 import { CreatePostModal } from "./CreatePostModal";
-import { MessageSquare, Share2, Trash2, Eye, ArrowUp, ArrowDown, Edit2 } from "lucide-react";
+import { MessageSquare, Share2, Trash2, Eye, ArrowUp, ArrowDown, Edit2, UserPlus } from "lucide-react";
+import { toast } from "sonner";
 
 export function PostCard({ post, onUpdate }: { post: any; onUpdate: () => void }) {
   const { user } = useAuthStore();
@@ -20,6 +21,7 @@ export function PostCard({ post, onUpdate }: { post: any; onUpdate: () => void }
   const [hasUpvoted, setHasUpvoted] = useState(post.upvotes?.includes(user?._id) || false);
   const [hasDownvoted, setHasDownvoted] = useState(post.downvotes?.includes(user?._id) || false);
   const [views, setViews] = useState(post.views || 0);
+  const [isFollowing, setIsFollowing] = useState(false); // Can be initialized from user.following if populated, but keep simple
   
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   
@@ -70,6 +72,17 @@ export function PostCard({ post, onUpdate }: { post: any; onUpdate: () => void }
     }
   };
 
+  const handleFollow = async () => {
+    try {
+      const res = await api.users.follow(post.author._id);
+      setIsFollowing(res.following);
+      if (res.following) toast.success(`Followed @${post.author.handle?.replace('@', '')}`);
+      else toast.success(`Unfollowed @${post.author.handle?.replace('@', '')}`);
+    } catch (err) {
+      toast.error("Failed to follow user");
+    }
+  };
+
   const renderContent = (text: string) => {
     const parts = text.split(/([@#]\w+)/g);
     return parts.map((part, i) => {
@@ -84,7 +97,7 @@ export function PostCard({ post, onUpdate }: { post: any; onUpdate: () => void }
   };
 
   return (
-    <div ref={cardRef} className="bg-card rounded-xl p-4 shadow-sm border border-border mb-4">
+    <div id={post._id} ref={cardRef} className="bg-card rounded-xl p-4 shadow-sm border border-border mb-4 scroll-mt-20">
       <div className="flex justify-between items-start mb-3">
         <div className="flex items-center gap-3">
           <div
@@ -94,11 +107,23 @@ export function PostCard({ post, onUpdate }: { post: any; onUpdate: () => void }
             {post.author?.name?.charAt(0).toUpperCase()}
           </div>
           <div>
-            <div className="font-bold">
+            <div className="font-bold flex items-center gap-2">
               {post.author?.name} 
               {post.feeling && <span className="font-normal text-muted-foreground ml-1">is feeling {post.feeling}</span>}
+              {user && user._id !== post.author?._id && (
+                <button
+                  onClick={handleFollow}
+                  className="text-xs flex items-center gap-1 text-primary hover:bg-primary/10 px-2 py-0.5 rounded-full transition-colors"
+                >
+                  <UserPlus size={12} />
+                  {isFollowing ? "Following" : "Follow"}
+                </button>
+              )}
             </div>
-            <div className="text-xs text-muted-foreground">
+            <div 
+              className="text-xs text-muted-foreground"
+              style={{ color: post.author?.handleColor }}
+            >
               @{post.author?.handle?.replace('@', '')}
             </div>
           </div>
