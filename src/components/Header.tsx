@@ -9,7 +9,7 @@ import { Button } from "./ui/button";
 import { LogOut } from "lucide-react";
 
 export function Header() {
-  const { user, setUser, isLoading, setIsLoading } = useAuthStore();
+  const { user, setUser, isLoading, setIsLoading, setIsCreateModalOpen } = useAuthStore();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -70,8 +70,12 @@ export function Header() {
           {isLoading ? (
             <div className="h-9 w-24 bg-muted animate-pulse rounded-md" />
           ) : user ? (
-            <div className="relative flex items-center" ref={dropdownRef}>
-              <button 
+            <div className="flex items-center space-x-4">
+              <Button onClick={() => setIsCreateModalOpen(true)} className="rounded-full px-6 shadow-md">
+                Create Post
+              </Button>
+              <div className="relative flex items-center" ref={dropdownRef}>
+                <button 
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 className="flex items-center space-x-2 focus:outline-none"
                 title="Profile"
@@ -121,6 +125,7 @@ export function Header() {
                   </div>
                 </div>
               )}
+              </div>
             </div>
           ) : (
             <div className="flex items-center space-x-2">

@@ -2,10 +2,12 @@ import mongoose, { Document, Model, Schema } from "mongoose";
 
 export interface IPost extends Document {
   content: string;
-  imageUrl?: string;
+  imageUrls?: string[];
+  feeling?: string;
   author: mongoose.Types.ObjectId;
   views: number;
-  likes: mongoose.Types.ObjectId[];
+  upvotes: mongoose.Types.ObjectId[];
+  downvotes: mongoose.Types.ObjectId[];
   shares: number;
   commentsCount: number;
   createdAt: Date;
@@ -15,10 +17,12 @@ export interface IPost extends Document {
 const PostSchema = new Schema<IPost>(
   {
     content: { type: String, required: true },
-    imageUrl: { type: String },
+    imageUrls: [{ type: String }],
+    feeling: { type: String },
     author: { type: Schema.Types.ObjectId, ref: "User", required: true },
     views: { type: Number, default: 0 },
-    likes: [{ type: Schema.Types.ObjectId, ref: "User" }],
+    upvotes: [{ type: Schema.Types.ObjectId, ref: "User" }],
+    downvotes: [{ type: Schema.Types.ObjectId, ref: "User" }],
     shares: { type: Number, default: 0 },
     commentsCount: { type: Number, default: 0 },
   },

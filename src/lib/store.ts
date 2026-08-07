@@ -14,6 +14,8 @@ interface AuthState {
   setUser: (user: User | null) => void;
   isLoading: boolean;
   setIsLoading: (isLoading: boolean) => void;
+  isCreateModalOpen: boolean;
+  setIsCreateModalOpen: (isOpen: boolean) => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -21,4 +23,6 @@ export const useAuthStore = create<AuthState>((set) => ({
   setUser: (user) => set({ user }),
   isLoading: true,
   setIsLoading: (isLoading) => set({ isLoading }),
+  isCreateModalOpen: false,
+  setIsCreateModalOpen: (isOpen) => set({ isCreateModalOpen: isOpen }),
 }));

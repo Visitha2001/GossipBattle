@@ -1,0 +1,73 @@
+import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import connectDB from "@/lib/db";
+import { Post } from "@/lib/models/Post";
+import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
+
+export async function POST(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get("auth_token")?.value;
+    
+    if (!token) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    let decoded: any;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET || "");
+    } catch (e) {
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+    }
+
+    const { voteType } = await req.json(); // "W" or "L"
+    if (!["W", "L"].includes(voteType)) {
+      return NextResponse.json({ error: "Invalid vote type" }, { status: 400 });
+    }
+
+    const { id } = await params;
+    await connectDB();
+    const post = await Post.findById(id);
+    if (!post) {
+      return NextResponse.json({ error: "Post not found" }, { status: 404 });
+    }
+
+    const userId = new mongoose.Types.ObjectId(decoded.userId);
+    const upvoteIndex = post.upvotes.findIndex((id) => id.equals(userId));
+    const downvoteIndex = post.downvotes.findIndex((id) => id.equals(userId));
+
+    if (voteType === "W") {
+      if (upvoteIndex > -1) {
+        post.upvotes.splice(upvoteIndex, 1);
+      } else {
+        post.upvotes.push(userId);
+        if (downvoteIndex > -1) post.downvotes.splice(downvoteIndex, 1);
+      }
+    } else {
+      if (downvoteIndex > -1) {
+        post.downvotes.splice(downvoteIndex, 1);
+      } else {
+        post.downvotes.push(userId);
+        if (upvoteIndex > -1) post.upvotes.splice(upvoteIndex, 1);
+      }
+    }
+
+    await post.save();
+
+    return NextResponse.json({ 
+      upvotes: post.upvotes.length, 
+      downvotes: post.downvotes.length,
+      hasUpvoted: post.upvotes.findIndex((id) => id.equals(userId)) > -1,
+      hasDownvoted: post.downvotes.findIndex((id) => id.equals(userId)) > -1,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
