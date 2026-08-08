@@ -50,7 +50,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const { content, imageUrl } = await req.json();
+    const { content, imageUrls, feeling } = await req.json();
 
     if (!content) {
       return NextResponse.json(
@@ -61,7 +61,8 @@ export async function POST(req: Request) {
 
     const post = await Post.create({
       content,
-      imageUrl,
+      imageUrls,
+      feeling,
       author: user._id,
     });
 

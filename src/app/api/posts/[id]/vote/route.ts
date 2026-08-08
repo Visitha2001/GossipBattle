@@ -24,6 +24,11 @@ export async function POST(
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
+    const { voteType } = await req.json(); // "W" or "L"
+    if (!["W", "L"].includes(voteType)) {
+      return NextResponse.json({ error: "Invalid vote type" }, { status: 400 });
+    }
+
     const { id } = await params;
     await connectDB();
     const post = await Post.findById(id);
@@ -32,19 +37,33 @@ export async function POST(
     }
 
     const userId = new mongoose.Types.ObjectId(decoded.userId);
-    const likeIndex = post.likes.findIndex((likeId) => likeId.equals(userId));
+    const upvoteIndex = post.upvotes.findIndex((id) => id.equals(userId));
+    const downvoteIndex = post.downvotes.findIndex((id) => id.equals(userId));
 
-    if (likeIndex > -1) {
-      // Unlike
-      post.likes.splice(likeIndex, 1);
+    if (voteType === "W") {
+      if (upvoteIndex > -1) {
+        post.upvotes.splice(upvoteIndex, 1);
+      } else {
+        post.upvotes.push(userId);
+        if (downvoteIndex > -1) post.downvotes.splice(downvoteIndex, 1);
+      }
     } else {
-      // Like
-      post.likes.push(userId);
+      if (downvoteIndex > -1) {
+        post.downvotes.splice(downvoteIndex, 1);
+      } else {
+        post.downvotes.push(userId);
+        if (upvoteIndex > -1) post.upvotes.splice(upvoteIndex, 1);
+      }
     }
 
     await post.save();
 
-    return NextResponse.json({ likes: post.likes.length, isLiked: likeIndex === -1 });
+    return NextResponse.json({ 
+      upvotes: post.upvotes.length, 
+      downvotes: post.downvotes.length,
+      hasUpvoted: post.upvotes.findIndex((id) => id.equals(userId)) > -1,
+      hasDownvoted: post.downvotes.findIndex((id) => id.equals(userId)) > -1,
+    });
   } catch (error) {
     return NextResponse.json(
       { error: "Internal server error" },

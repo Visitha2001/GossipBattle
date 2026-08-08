@@ -5,7 +5,7 @@ export const api = {
       if (!res.ok) throw new Error("Failed to fetch posts");
       return res.json();
     },
-    create: async (data: { content: string; imageUrl?: string }) => {
+    create: async (data: { content: string; imageUrls?: string[]; feeling?: string }) => {
       const res = await fetch("/api/posts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -21,11 +21,22 @@ export const api = {
       if (!res.ok) throw new Error("Failed to delete post");
       return res.json();
     },
-    like: async (id: string) => {
-      const res = await fetch(`/api/posts/${id}/like`, {
-        method: "POST",
+    edit: async (id: string, data: { content?: string; imageUrls?: string[]; feeling?: string }) => {
+      const res = await fetch(`/api/posts/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
       });
-      if (!res.ok) throw new Error("Failed to like post");
+      if (!res.ok) throw new Error("Failed to edit post");
+      return res.json();
+    },
+    vote: async (id: string, voteType: "W" | "L") => {
+      const res = await fetch(`/api/posts/${id}/vote`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ voteType }),
+      });
+      if (!res.ok) throw new Error("Failed to vote on post");
       return res.json();
     },
     view: async (id: string) => {
@@ -42,7 +53,7 @@ export const api = {
       if (!res.ok) throw new Error("Failed to fetch comments");
       return res.json();
     },
-    create: async (postId: string, data: { content: string; side?: string; parentComment?: string }) => {
+    create: async (postId: string, data: { content: string; side?: string; parentComment?: string; isBattle?: boolean }) => {
       const res = await fetch(`/api/posts/${postId}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -51,11 +62,13 @@ export const api = {
       if (!res.ok) throw new Error("Failed to create comment");
       return res.json();
     },
-    like: async (commentId: string) => {
-      const res = await fetch(`/api/comments/${commentId}/like`, {
+    vote: async (commentId: string, voteType: "W" | "L") => {
+      const res = await fetch(`/api/comments/${commentId}/vote`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ voteType }),
       });
-      if (!res.ok) throw new Error("Failed to like comment");
+      if (!res.ok) throw new Error("Failed to vote on comment");
       return res.json();
     },
     hide: async (commentId: string) => {
@@ -63,6 +76,22 @@ export const api = {
         method: "PATCH",
       });
       if (!res.ok) throw new Error("Failed to hide comment");
+      return res.json();
+    },
+    edit: async (commentId: string, content: string) => {
+      const res = await fetch(`/api/comments/${commentId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content }),
+      });
+      if (!res.ok) throw new Error("Failed to edit comment");
+      return res.json();
+    },
+    delete: async (commentId: string) => {
+      const res = await fetch(`/api/comments/${commentId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Failed to delete comment");
       return res.json();
     },
   },
@@ -126,6 +155,36 @@ export const api = {
     search: async (query: string) => {
       const res = await fetch(`/api/users/search?q=${encodeURIComponent(query)}`);
       if (!res.ok) throw new Error("Failed to fetch users");
+      return res.json();
+    },
+    follow: async (targetUserId: string) => {
+      const res = await fetch("/api/users/follow", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetUserId }),
+      });
+      if (!res.ok) throw new Error("Failed to follow user");
+      return res.json();
+    },
+    suggestions: async () => {
+      const res = await fetch("/api/users/suggestions");
+      if (!res.ok) throw new Error("Failed to fetch suggestions");
+      return res.json();
+    },
+  },
+  notifications: {
+    getAll: async () => {
+      const res = await fetch("/api/notifications");
+      if (!res.ok) throw new Error("Failed to fetch notifications");
+      return res.json();
+    },
+    markRead: async (notificationId?: string) => {
+      const res = await fetch("/api/notifications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notificationId }),
+      });
+      if (!res.ok) throw new Error("Failed to mark notifications as read");
       return res.json();
     },
   },

@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { GoogleAuthProvider } from "@/components/providers/GoogleAuthProvider";
 import { Header } from "@/components/Header";
 import { OnboardingModal } from "@/components/OnboardingModal";
+import { Toaster } from "@/components/ui/sonner";
 
 const outfit = Outfit({
   variable: "--font-outfit",
@@ -38,6 +39,7 @@ export default function RootLayout({
             <main className="flex-1">
               {children}
             </main>
+            <Toaster />
           </GoogleAuthProvider>
         </ThemeProvider>
       </body>

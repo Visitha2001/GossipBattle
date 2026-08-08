@@ -1,35 +1,11 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import connectDB from "@/lib/db";
+import { Comment } from "@/lib/models/Comment";
 import { Post } from "@/lib/models/Post";
-import { User } from "@/lib/models/User";
 import jwt from "jsonwebtoken";
 
 export async function PATCH(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const { id } = await params;
-    await connectDB();
-    const post = await Post.findByIdAndUpdate(
-      id,
-      { $inc: { views: 1 } },
-      { new: true }
-    );
-    if (!post) {
-      return NextResponse.json({ error: "Post not found" }, { status: 404 });
-    }
-    return NextResponse.json(post);
-  } catch (error) {
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
-  }
-}
-
-export async function PUT(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -50,32 +26,27 @@ export async function PUT(
 
     const { id } = await params;
     await connectDB();
-    const post = await Post.findById(id);
-    if (!post) {
-      return NextResponse.json({ error: "Post not found" }, { status: 404 });
+    const comment = await Comment.findById(id);
+    if (!comment) {
+      return NextResponse.json({ error: "Comment not found" }, { status: 404 });
     }
 
-    if (post.author.toString() !== decoded.userId) {
+    if (comment.author.toString() !== decoded.userId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const { content, imageUrls, feeling } = await req.json();
-    if (!content && (!imageUrls || imageUrls.length === 0)) {
+    const { content } = await req.json();
+    if (!content) {
       return NextResponse.json(
-        { error: "Content or images are required" },
+        { error: "Content is required" },
         { status: 400 }
       );
     }
 
-    if (content !== undefined) post.content = content;
-    if (imageUrls !== undefined) post.imageUrls = imageUrls;
-    post.feeling = feeling || undefined;
+    comment.content = content;
+    await comment.save();
 
-    await post.save();
-
-    await post.populate("author", "name handle avatar handleColor");
-
-    return NextResponse.json(post);
+    return NextResponse.json(comment);
   } catch (error) {
     return NextResponse.json(
       { error: "Internal server error" },
@@ -105,16 +76,30 @@ export async function DELETE(
 
     const { id } = await params;
     await connectDB();
-    const post = await Post.findById(id);
+    const comment = await Comment.findById(id);
+    if (!comment) {
+      return NextResponse.json({ error: "Comment not found" }, { status: 404 });
+    }
+
+    // Verify if user is comment author OR post author
+    const post = await Post.findById(comment.post);
     if (!post) {
       return NextResponse.json({ error: "Post not found" }, { status: 404 });
     }
 
-    if (post.author.toString() !== decoded.userId) {
+    if (comment.author.toString() !== decoded.userId && post.author.toString() !== decoded.userId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    await Post.findByIdAndDelete(id);
+    await Comment.findByIdAndDelete(id);
+    
+    // Delete direct children (e.g. comments inside a battle)
+    await Comment.deleteMany({ parentComment: id });
+
+    // Recalculate post comments count exactly
+    const actualCount = await Comment.countDocuments({ post: post._id });
+    post.commentsCount = actualCount;
+    await post.save();
 
     return NextResponse.json({ success: true });
   } catch (error) {

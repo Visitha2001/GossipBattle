@@ -24,6 +24,11 @@ export async function POST(
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
+    const { voteType } = await req.json(); // "W" or "L"
+    if (!["W", "L"].includes(voteType)) {
+      return NextResponse.json({ error: "Invalid vote type" }, { status: 400 });
+    }
+
     const { id } = await params;
     await connectDB();
     const comment = await Comment.findById(id);
@@ -32,26 +37,34 @@ export async function POST(
     }
 
     const userId = new mongoose.Types.ObjectId(decoded.userId);
-    const hasLiked = comment.likes?.includes(userId);
+    const upvoteIndex = comment.upvotes.findIndex((id) => id.equals(userId));
+    const downvoteIndex = comment.downvotes.findIndex((id) => id.equals(userId));
 
-    if (hasLiked) {
-      comment.likes = comment.likes.filter(
-        (likeId) => likeId.toString() !== userId.toString()
-      );
+    if (voteType === "W") {
+      if (upvoteIndex > -1) {
+        comment.upvotes.splice(upvoteIndex, 1);
+      } else {
+        comment.upvotes.push(userId);
+        if (downvoteIndex > -1) comment.downvotes.splice(downvoteIndex, 1);
+      }
     } else {
-      if (!comment.likes) comment.likes = [];
-      comment.likes.push(userId);
+      if (downvoteIndex > -1) {
+        comment.downvotes.splice(downvoteIndex, 1);
+      } else {
+        comment.downvotes.push(userId);
+        if (upvoteIndex > -1) comment.upvotes.splice(upvoteIndex, 1);
+      }
     }
 
     await comment.save();
 
-    return NextResponse.json({
-      success: true,
-      likes: comment.likes.length,
-      isLiked: !hasLiked,
+    return NextResponse.json({ 
+      upvotes: comment.upvotes.length, 
+      downvotes: comment.downvotes.length,
+      hasUpvoted: comment.upvotes.findIndex((id) => id.equals(userId)) > -1,
+      hasDownvoted: comment.downvotes.findIndex((id) => id.equals(userId)) > -1,
     });
   } catch (error) {
-    console.error("Error liking comment:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

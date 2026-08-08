@@ -3,20 +3,24 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuthStore } from "@/lib/store";
 import { api } from "@/lib/api";
-import { X, Image as ImageIcon } from "lucide-react";
+import { X, Image as ImageIcon, SmilePlus, Loader2 } from "lucide-react";
+import EmojiPicker from 'emoji-picker-react';
 
-export function CreatePostModal({ isOpen, onClose, onPostCreated }: { isOpen: boolean; onClose: () => void; onPostCreated: () => void }) {
+const FEELINGS = ["Happy", "Excited", "Angry", "Sad", "Cool", "Loved", "Crazy", "Tired"];
+
+export function CreatePostModal({ isOpen, onClose, onPostCreated, editPost }: { isOpen: boolean; onClose: () => void; onPostCreated: () => void; editPost?: any }) {
   const { user } = useAuthStore();
-  const [content, setContent] = useState("");
-  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [content, setContent] = useState(editPost?.content || "");
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [existingImageUrls, setExistingImageUrls] = useState<string[]>(editPost?.imageUrls || (editPost?.imageUrl ? [editPost.imageUrl] : []));
+  const [feeling, setFeeling] = useState<string>(editPost?.feeling || "");
   const [loading, setLoading] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [searchType, setSearchType] = useState<"mention" | "hashtag" | null>(null);
   const [cursorPosition, setCursorPosition] = useState<{ start: number, word: string } | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  if (!isOpen) return null;
 
   useEffect(() => {
     if (!searchType || !cursorPosition || cursorPosition.word.length < 2) {
@@ -41,6 +45,23 @@ export function CreatePostModal({ isOpen, onClose, onPostCreated }: { isOpen: bo
 
     return () => clearTimeout(timer);
   }, [searchType, cursorPosition]);
+
+  useEffect(() => {
+    if (isOpen) {
+      if (editPost) {
+        setContent(editPost.content || "");
+        setFeeling(editPost.feeling || "");
+        setExistingImageUrls(editPost.imageUrls || (editPost.imageUrl ? [editPost.imageUrl] : []));
+      } else {
+        setContent("");
+        setFeeling("");
+        setExistingImageUrls([]);
+      }
+      setImageFiles([]);
+    }
+  }, [isOpen, editPost]);
+
+  if (!isOpen) return null;
 
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const text = e.target.value;
@@ -87,22 +108,47 @@ export function CreatePostModal({ isOpen, onClose, onPostCreated }: { isOpen: bo
     }, 0);
   };
 
+  const onEmojiClick = (emojiObject: any) => {
+    if (!textareaRef.current) return;
+    
+    const cursor = textareaRef.current.selectionStart;
+    const text = content;
+    const newText = text.slice(0, cursor) + emojiObject.emoji + text.slice(cursor);
+    setContent(newText);
+    
+    // If the emoji picker was opened next to feeling, also add it to feeling?
+    // The requirement says "add emogies to feelings of posts". I'll just append it to feeling.
+    // Wait, the prompt says "add emogies to feelings of posts". Let's update the feelings array or allow custom feeling with emoji. 
+    // I'll add an option to insert emoji in text or use emoji picker for feeling. 
+    // For simplicity, let's just append the emoji to the text content.
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!content.trim() && !imageFile) return;
+    if (!content.trim() && imageFiles.length === 0) return;
 
     setLoading(true);
     try {
-      let imageUrl = "";
-      if (imageFile) {
-        const uploadRes = await api.upload.image(imageFile);
-        imageUrl = uploadRes.url;
+      const newImageUrls: string[] = [];
+      if (imageFiles.length > 0) {
+        // Upload images concurrently
+        const uploadPromises = imageFiles.map(file => api.upload.image(file));
+        const uploadResults = await Promise.all(uploadPromises);
+        uploadResults.forEach(res => newImageUrls.push(res.url));
       }
 
-      await api.posts.create({ content, imageUrl });
+      const allImageUrls = [...existingImageUrls, ...newImageUrls];
+
+      if (editPost) {
+        await api.posts.edit(editPost._id, { content, imageUrls: allImageUrls, feeling: feeling || undefined });
+      } else {
+        await api.posts.create({ content, imageUrls: allImageUrls, feeling: feeling || undefined });
+      }
 
       setContent("");
-      setImageFile(null);
+      setImageFiles([]);
+      setExistingImageUrls([]);
+      setFeeling("");
       onPostCreated();
       onClose();
     } catch (err) {
@@ -112,16 +158,25 @@ export function CreatePostModal({ isOpen, onClose, onPostCreated }: { isOpen: bo
     }
   };
 
+  const removeImage = (index: number) => {
+    setImageFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="w-full max-w-md rounded-xl bg-card p-4 shadow-lg border border-border">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold">Create Post</h2>
+          <h2 className="text-xl font-bold">{editPost ? "Edit Post" : "Create Post"}</h2>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
             <X size={20} />
           </button>
         </div>
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="relative">
+          {loading && (
+            <div className="absolute inset-0 bg-background/50 z-20 flex items-center justify-center rounded-md backdrop-blur-[1px]">
+              <Loader2 className="animate-spin text-primary" size={32} />
+            </div>
+          )}
           <div className="flex flex-col gap-4 mb-4 relative">
             <textarea
               ref={textareaRef}
@@ -130,6 +185,7 @@ export function CreatePostModal({ isOpen, onClose, onPostCreated }: { isOpen: bo
               onSelect={handleTextChange}
               className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring min-h-[100px]"
               placeholder="What's on your mind? Use @ to mention or # for tags."
+              disabled={loading}
             />
             
             {suggestions.length > 0 && (
@@ -164,20 +220,67 @@ export function CreatePostModal({ isOpen, onClose, onPostCreated }: { isOpen: bo
               </div>
             )}
 
-            {imageFile && (
-              <div className="relative rounded-md overflow-hidden border border-border">
-                <img 
-                  src={URL.createObjectURL(imageFile)} 
-                  alt="Preview" 
-                  className="w-full h-auto max-h-[300px] object-cover"
-                />
-                <button
-                  type="button"
-                  onClick={() => setImageFile(null)}
-                  className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white rounded-full p-1 transition-colors"
-                >
-                  <X size={16} />
-                </button>
+            {(imageFiles.length > 0 || existingImageUrls.length > 0) && (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                {existingImageUrls.map((url, i) => (
+                  <div key={`existing-${i}`} className="relative rounded-md overflow-hidden border border-border h-24">
+                    <img 
+                      src={url} 
+                      alt={`Existing ${i}`} 
+                      className="w-full h-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setExistingImageUrls(prev => prev.filter((_, idx) => idx !== i))}
+                      className="absolute top-1 right-1 bg-black/60 hover:bg-black/80 text-white rounded-full p-1 transition-colors"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))}
+                {imageFiles.map((file, i) => (
+                  <div key={`new-${i}`} className="relative rounded-md overflow-hidden border border-border h-24">
+                    <img 
+                      src={URL.createObjectURL(file)} 
+                      alt={`New Preview ${i}`} 
+                      className="w-full h-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeImage(i)}
+                      className="absolute top-1 right-1 bg-black/60 hover:bg-black/80 text-white rounded-full p-1 transition-colors"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          
+          <div className="flex items-center justify-between mb-4 relative">
+            <div className="flex items-center gap-2">
+              <button 
+                type="button" 
+                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <SmilePlus size={18} />
+              </button>
+              <input 
+                type="text"
+                value={feeling} 
+                onChange={(e) => setFeeling(e.target.value)}
+                placeholder="Feeling..."
+                className="bg-transparent border border-input rounded-md px-2 py-1 text-sm text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring w-32"
+              />
+            </div>
+            {showEmojiPicker && (
+              <div className="absolute top-10 left-0 z-50">
+                <EmojiPicker onEmojiClick={(emojiObject) => {
+                  setFeeling((prev) => prev + emojiObject.emoji);
+                  setShowEmojiPicker(false);
+                }} />
               </div>
             )}
           </div>
@@ -185,21 +288,31 @@ export function CreatePostModal({ isOpen, onClose, onPostCreated }: { isOpen: bo
           <div className="flex items-center justify-between">
             <label className="cursor-pointer flex items-center gap-2 text-sm text-primary hover:text-primary-600 transition-colors">
               <ImageIcon size={20} />
-              <span>Add Image</span>
+              <span>Add Images</span>
               <input
                 type="file"
                 accept="image/*"
+                multiple
                 className="hidden"
-                onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+                onChange={(e) => {
+                  if (e.target.files) {
+                    setImageFiles(prev => [...prev, ...Array.from(e.target.files!)]);
+                  }
+                }}
               />
             </label>
 
             <button
               type="submit"
-              disabled={loading || (!content.trim() && !imageFile)}
+              disabled={loading || (!content.trim() && imageFiles.length === 0 && existingImageUrls.length === 0)}
               className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground shadow hover:bg-primary/90 h-9 px-4 py-2"
             >
-              {loading ? "Posting..." : "Post"}
+              {loading ? (
+                <>
+                  <Loader2 size={16} className="animate-spin mr-2" />
+                  {editPost ? "Saving..." : "Posting..."}
+                </>
+              ) : (editPost ? "Save" : "Post")}
             </button>
           </div>
         </form>

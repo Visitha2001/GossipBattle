@@ -5,8 +5,10 @@ export interface IComment extends Document {
   author: mongoose.Types.ObjectId;
   post: mongoose.Types.ObjectId;
   side: "none" | "left" | "right";
+  isBattle: boolean;
   isHidden: boolean;
-  likes: mongoose.Types.ObjectId[];
+  upvotes: mongoose.Types.ObjectId[];
+  downvotes: mongoose.Types.ObjectId[];
   parentComment?: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -18,8 +20,10 @@ const CommentSchema = new Schema<IComment>(
     author: { type: Schema.Types.ObjectId, ref: "User", required: true },
     post: { type: Schema.Types.ObjectId, ref: "Post", required: true },
     side: { type: String, enum: ["none", "left", "right"], default: "none" },
+    isBattle: { type: Boolean, default: false },
     isHidden: { type: Boolean, default: false },
-    likes: [{ type: Schema.Types.ObjectId, ref: "User" }],
+    upvotes: [{ type: Schema.Types.ObjectId, ref: "User" }],
+    downvotes: [{ type: Schema.Types.ObjectId, ref: "User" }],
     parentComment: { type: Schema.Types.ObjectId, ref: "Comment", default: null },
   },
   {

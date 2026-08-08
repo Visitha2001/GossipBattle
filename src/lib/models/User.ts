@@ -7,6 +7,10 @@ export interface IUser extends Document {
   avatar?: string;
   handle?: string;
   handleColor?: string;
+  coverPhoto?: string;
+  bio?: string;
+  followers?: mongoose.Types.ObjectId[];
+  following?: mongoose.Types.ObjectId[];
 }
 
 const UserSchema = new Schema<IUser>(
@@ -17,6 +21,10 @@ const UserSchema = new Schema<IUser>(
     avatar: { type: String },
     handle: { type: String, unique: true, sparse: true },
     handleColor: { type: String },
+    coverPhoto: { type: String },
+    bio: { type: String },
+    followers: [{ type: Schema.Types.ObjectId, ref: "User" }],
+    following: [{ type: Schema.Types.ObjectId, ref: "User" }],
   },
   {
     timestamps: true,

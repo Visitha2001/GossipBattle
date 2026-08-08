@@ -54,9 +54,9 @@ export async function POST(
       return NextResponse.json({ error: "Post not found" }, { status: 404 });
     }
 
-    const { content, side, parentComment } = await req.json();
+    const { content, side, parentComment, isBattle } = await req.json();
 
-    if (!content) {
+    if (!content && !isBattle) {
       return NextResponse.json(
         { error: "Content is required" },
         { status: 400 }
@@ -64,8 +64,9 @@ export async function POST(
     }
 
     const comment = await Comment.create({
-      content,
+      content: content || "Battle Created",
       side: side || "none",
+      isBattle: isBattle || false,
       author: decoded.userId,
       post: id,
       parentComment: parentComment || null,
