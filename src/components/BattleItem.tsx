@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { ArrowUp, ArrowDown, Trash2, Loader2 } from "lucide-react";
+import { Trash2, Loader2 } from "lucide-react";
 import { useAuthStore } from "@/lib/store";
 import { api } from "@/lib/api";
 import { CommentItem } from "./CommentItem";
 import { ConfirmModal } from "./ConfirmModal";
+import Link from "next/link";
 
 interface BattleItemProps {
   battle: any;
@@ -100,9 +101,9 @@ export function BattleItem({ battle, postAuthorId, onUpdate, leftComments, right
       <div className="bg-muted/30 p-3 border-b border-border flex justify-between items-center">
         <div className="text-sm font-bold text-muted-foreground flex items-center gap-2">
           <span>
-            Battle created by <span className="text-foreground" style={{ color: battle.author?.handleColor }}>@{battle.author?.handle?.replace('@', '')}</span>
+            Battle created by <Link href={`/profile/${battle.author?.handle}`}><span className="text-foreground hover:underline cursor-pointer" style={{ color: battle.author?.handleColor }}>{battle.author?.handle}</span></Link>
             {parentCommentAuthor && (
-              <> on <span className="text-foreground">@{parentCommentAuthor.replace('@', '')}</span>'s comment</>
+              <> on <Link href={`/profile/${parentCommentAuthor}`}><span className="text-foreground hover:underline cursor-pointer">{parentCommentAuthor}</span></Link>'s comment</>
             )}
           </span>
           {canDelete && (
@@ -113,14 +114,14 @@ export function BattleItem({ battle, postAuthorId, onUpdate, leftComments, right
         </div>
         
         <div className="flex gap-1 items-center bg-muted/50 rounded-full px-2 py-1 text-xs">
-          <button onClick={() => handleVote("W")} className={`flex items-center hover:text-green-500 transition-colors ${hasUpvoted ? 'text-green-500' : ''}`}>
-            <ArrowUp size={14} />
-            <span className="font-medium ml-1">{upvotes}</span>
+          <button onClick={() => handleVote("W")} className="flex items-center gap-1 group">
+            <span className={`w-4 h-4 flex items-center justify-center rounded text-[8px] font-bold border transition-colors ${hasUpvoted ? 'bg-green-500 border-green-500 text-white' : 'border-green-500 text-green-500 group-hover:bg-green-500/10'}`}>W</span>
+            <span className={`font-medium ml-1 ${hasUpvoted ? 'text-green-500' : 'text-muted-foreground group-hover:text-green-500 transition-colors'}`}>{upvotes}</span>
           </button>
           <span className="mx-1 text-border">|</span>
-          <button onClick={() => handleVote("L")} className={`flex items-center hover:text-red-500 transition-colors ${hasDownvoted ? 'text-red-500' : ''}`}>
-            <ArrowDown size={14} />
-            <span className="font-medium ml-1">{downvotes}</span>
+          <button onClick={() => handleVote("L")} className="flex items-center gap-1 group">
+            <span className={`w-4 h-4 flex items-center justify-center rounded text-[8px] font-bold border transition-colors ${hasDownvoted ? 'bg-red-500 border-red-500 text-white' : 'border-red-500 text-red-500 group-hover:bg-red-500/10'}`}>L</span>
+            <span className={`font-medium ml-1 ${hasDownvoted ? 'text-red-500' : 'text-muted-foreground group-hover:text-red-500 transition-colors'}`}>{downvotes}</span>
           </button>
         </div>
       </div>

@@ -46,6 +46,13 @@ export const api = {
       if (!res.ok) throw new Error("Failed to view post");
       return res.json();
     },
+    share: async (id: string) => {
+      const res = await fetch(`/api/posts/${id}/share`, {
+        method: "POST",
+      });
+      if (!res.ok) throw new Error("Failed to share post");
+      return res.json();
+    },
   },
   comments: {
     getAll: async (postId: string) => {
@@ -171,6 +178,20 @@ export const api = {
       if (!res.ok) throw new Error("Failed to fetch suggestions");
       return res.json();
     },
+    getProfile: async (handle: string) => {
+      const res = await fetch(`/api/users/${handle}`);
+      if (!res.ok) throw new Error("Failed to fetch profile");
+      return res.json();
+    },
+    updateProfile: async (handle: string, data: any) => {
+      const res = await fetch(`/api/users/${handle}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error("Failed to update profile");
+      return res.json();
+    }
   },
   notifications: {
     getAll: async () => {

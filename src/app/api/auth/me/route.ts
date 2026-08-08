@@ -31,6 +31,7 @@ export async function GET() {
         avatar: user.avatar,
         handle: user.handle,
         handleColor: user.handleColor,
+        following: user.following?.map((id: any) => id.toString()) || [],
       }
     });
 

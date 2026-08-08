@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import connectDB from "@/lib/db";
 import { Post } from "@/lib/models/Post";
+import { Notification } from "@/lib/models/Notification";
+import { sseEmitter } from "@/lib/eventEmitter";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 
@@ -46,6 +48,18 @@ export async function POST(
       } else {
         post.upvotes.push(userId);
         if (downvoteIndex > -1) post.downvotes.splice(downvoteIndex, 1);
+        
+        // Notification for 'like'
+        if (post.author.toString() !== userId.toString()) {
+          const notif = await Notification.create({
+            user: post.author,
+            actor: userId,
+            type: "like",
+            post: post._id,
+          });
+          const populatedNotif = await notif.populate("actor", "name handle avatar handleColor");
+          sseEmitter.emit("notification", post.author.toString(), populatedNotif);
+        }
       }
     } else {
       if (downvoteIndex > -1) {

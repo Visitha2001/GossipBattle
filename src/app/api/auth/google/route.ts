@@ -68,6 +68,7 @@ export async function POST(req: Request) {
         avatar: user.avatar,
         handle: user.handle,
         handleColor: user.handleColor,
+        following: user.following?.map((id: any) => id.toString()) || [],
       }
     });
 

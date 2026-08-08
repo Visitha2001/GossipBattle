@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Reply, EyeOff, ArrowUp, ArrowDown, Edit2, Trash2, Swords } from "lucide-react";
+import { Reply, EyeOff, Edit2, Trash2, Swords } from "lucide-react";
 import { useAuthStore } from "@/lib/store";
 import { api } from "@/lib/api";
 import { ConfirmModal } from "./ConfirmModal";
 import { BattleItem } from "./BattleItem";
+import Link from "next/link";
 
 interface CommentItemProps {
   comment: any;
@@ -28,6 +29,7 @@ export function CommentItem({ comment, postAuthorId, onReply, onUpdate, replies 
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const handleVote = async (voteType: "W" | "L") => {
     if (!user) return;
@@ -102,29 +104,41 @@ export function CommentItem({ comment, postAuthorId, onReply, onUpdate, replies 
     const parts = text.split(/([@#]\w+)/g);
     return parts.map((part, i) => {
       if (part.startsWith("@")) {
-        const handle = part.substring(1);
-        return <span key={i} className="text-primary hover:underline cursor-pointer font-medium">{handle}</span>;
+        return <Link key={i} href={`/profile/${part}`} className="text-primary hover:underline cursor-pointer font-medium" onClick={(e) => e.stopPropagation()}>{part}</Link>;
+      }
+      if (part.startsWith("#")) {
+        return <span key={i} className="text-primary hover:underline cursor-pointer">{part}</span>;
       }
       return <span key={i}>{part}</span>;
     });
   };
 
   return (
-    <div className={`flex flex-col gap-2 ${comment.parentComment && !isInsideBattle ? 'ml-8 mt-2 relative' : 'mt-3'}`}>
+    <div id={`comment-${comment._id}`} className={`flex flex-col gap-2 ${comment.parentComment && !isInsideBattle ? 'ml-8 mt-2 relative' : 'mt-3'}`}>
       <div className={`flex gap-2 ${comment.isHidden ? 'opacity-60' : ''}`}>
-        <div
-          className="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] text-white font-bold"
-          style={{ backgroundColor: comment.author?.handleColor || "var(--primary)" }}
-        >
-          {comment.author?.name?.charAt(0).toUpperCase()}
-        </div>
+        {comment.author?.avatar ? (
+          <img 
+            src={comment.author.avatar} 
+            alt={`${comment.author.name}'s avatar`} 
+            className="w-6 h-6 rounded-full border object-cover flex-shrink-0"
+          />
+        ) : (
+          <div
+            className="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] text-white font-bold"
+            style={{ backgroundColor: comment.author?.handleColor || "var(--primary)" }}
+          >
+            {comment.author?.name?.charAt(0).toUpperCase()}
+          </div>
+        )}
         <div className="flex-1">
           <div className="bg-muted px-4 py-2 rounded-2xl rounded-tl-sm text-sm inline-block min-w-[150px] relative border border-primary/40">
             {/* Optional tail for the bubble */}
             <div className="absolute top-0 -left-1 w-2 h-2 bg-muted rounded-br-sm" style={{ clipPath: 'polygon(100% 0, 0 0, 100% 100%)' }}></div>
             
             <div className="font-bold mr-2 text-xs mb-1 flex items-center justify-between">
-              <span style={{ color: comment.author?.handleColor }}>@{comment.author?.handle?.replace('@', '')}</span>
+              <Link href={`/profile/${comment.author?.handle}`}>
+                <span className="hover:underline cursor-pointer" style={{ color: comment.author?.handleColor }}>{comment.author?.handle}</span>
+              </Link>
               <div className="flex items-center">
                 {comment.isHidden && isPostAuthor && (
                   <span className="text-[10px] bg-destructive/20 text-destructive px-1 rounded ml-2 border border-destructive/30 mr-2">Hidden</span>
@@ -143,35 +157,32 @@ export function CommentItem({ comment, postAuthorId, onReply, onUpdate, replies 
             </div>
             {isHiddenForOthers ? (
               <span className="text-muted-foreground italic text-xs">This comment was hidden by the author</span>
-            ) : isEditing ? (
-              <form onSubmit={handleEditSubmit} className="mt-1">
-                <input
-                  type="text"
-                  value={editContent}
-                  onChange={(e) => setEditContent(e.target.value)}
-                  className="w-full bg-background border border-input rounded-md px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
-                  autoFocus
-                />
-                <div className="flex justify-end gap-2 mt-1">
-                  <button type="button" onClick={() => setIsEditing(false)} className="text-[10px] text-muted-foreground">Cancel</button>
-                  <button type="submit" disabled={isSavingEdit} className="text-[10px] bg-primary text-primary-foreground px-2 rounded">Save</button>
-                </div>
-              </form>
             ) : (
-              <div>{renderContent(comment.content)}</div>
+              <div className="whitespace-pre-wrap">
+                {comment.content?.length > 200 && !isExpanded ? (
+                  <>
+                    {renderContent(comment.content.substring(0, 200) + "... ")}
+                    <button onClick={() => setIsExpanded(true)} className="text-primary hover:underline font-medium text-xs ml-1">See more</button>
+                  </>
+                ) : (
+                  <>
+                    {renderContent(comment.content)}
+                    {comment.content?.length > 200 && (
+                      <button onClick={() => setIsExpanded(false)} className="text-primary hover:underline font-medium text-xs ml-1 mt-1 block">Show less</button>
+                    )}
+                  </>
+                )}
+              </div>
             )}
           </div>
           
           <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1 ml-1">
-            <div className="flex gap-1 items-center bg-muted/50 rounded-full px-2 py-0.5">
-              <button onClick={() => handleVote("W")} className={`flex items-center hover:text-green-500 transition-colors ${hasUpvoted ? 'text-green-500' : ''}`}>
-                <ArrowUp size={12} />
-                <span className="font-medium ml-1">{upvotes}</span>
+            <div className="flex gap-1.5 items-center">
+              <button onClick={() => handleVote("W")} className={`flex items-center gap-1.5 pl-3 pr-1 py-0.5 rounded-full text-[10px] font-bold transition-colors ${hasUpvoted ? 'bg-green-500 text-white' : 'bg-green-500/10 text-green-500 hover:bg-green-500/20'}`}>
+                W <span className={`flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full text-[9px] ${hasUpvoted ? 'bg-white/30' : 'bg-green-500/20'}`}>{upvotes}</span>
               </button>
-              <span className="mx-1 text-border/50">|</span>
-              <button onClick={() => handleVote("L")} className={`flex items-center hover:text-red-500 transition-colors ${hasDownvoted ? 'text-red-500' : ''}`}>
-                <ArrowDown size={12} />
-                <span className="font-medium ml-1">{downvotes}</span>
+              <button onClick={() => handleVote("L")} className={`flex items-center gap-1.5 pl-3 pr-1 py-0.5 rounded-full text-[10px] font-bold transition-colors ${hasDownvoted ? 'bg-red-500 text-white' : 'bg-red-500/10 text-red-500 hover:bg-red-500/20'}`}>
+                L <span className={`flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full text-[9px] ${hasDownvoted ? 'bg-white/30' : 'bg-red-500/20'}`}>{downvotes}</span>
               </button>
             </div>
             {!comment.parentComment && (
@@ -240,6 +251,29 @@ export function CommentItem({ comment, postAuthorId, onReply, onUpdate, replies 
         confirmText="Delete"
         isLoading={isDeleting}
       />
+
+      {isEditing && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-md rounded-xl bg-card p-6 shadow-lg border border-border animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-lg font-bold mb-4">Edit Comment</h2>
+            <form onSubmit={handleEditSubmit}>
+              <textarea
+                value={editContent}
+                onChange={(e) => setEditContent(e.target.value)}
+                className="w-full bg-muted border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary min-h-[80px] max-h-[200px] resize-y mb-4"
+                autoFocus
+                rows={3}
+              />
+              <div className="flex justify-end gap-3">
+                <button type="button" onClick={() => setIsEditing(false)} className="px-4 py-2 text-sm text-muted-foreground hover:bg-muted rounded-md transition-colors">Cancel</button>
+                <button type="submit" disabled={isSavingEdit || !editContent.trim()} className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md disabled:opacity-50 min-w-[80px] flex justify-center items-center font-medium">
+                  {isSavingEdit ? "Saving..." : "Save"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
