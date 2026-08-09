@@ -60,7 +60,7 @@ export const api = {
       if (!res.ok) throw new Error("Failed to fetch comments");
       return res.json();
     },
-    create: async (postId: string, data: { content: string; side?: string; parentComment?: string; isBattle?: boolean }) => {
+    create: async (postId: string, data: { content: string; side?: string; parentComment?: string; isBattle?: boolean; imageUrl?: string }) => {
       const res = await fetch(`/api/posts/${postId}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -147,7 +147,14 @@ export const api = {
         method: "POST",
         body: formData,
       });
-      if (!res.ok) throw new Error("Image upload failed");
+      if (!res.ok) {
+        let errorMsg = "Image upload failed";
+        try {
+          const errorData = await res.json();
+          if (errorData.error) errorMsg = errorData.error;
+        } catch(e) {}
+        throw new Error(errorMsg);
+      }
       return res.json();
     },
   },

@@ -55,17 +55,18 @@ export async function POST(
       return NextResponse.json({ error: "Post not found" }, { status: 404 });
     }
 
-    const { content, side, parentComment, isBattle } = await req.json();
+    const { content, imageUrl, side, parentComment, isBattle } = await req.json();
 
-    if (!content && !isBattle) {
+    if (!content && !imageUrl && !isBattle) {
       return NextResponse.json(
-        { error: "Content is required" },
+        { error: "Content or Image is required" },
         { status: 400 }
       );
     }
 
     const comment = await Comment.create({
-      content: content || "Battle Created",
+      content: content || (isBattle ? "Battle Created" : ""),
+      imageUrl: imageUrl || undefined,
       side: side || "none",
       isBattle: isBattle || false,
       author: decoded.userId,
@@ -86,6 +87,7 @@ export async function POST(
         actor: decoded.userId,
         type: "comment",
         post: id,
+        comment: comment._id,
       });
       const popNotif = await Notification.findById(notif._id).populate("actor", "name handle avatar handleColor");
       sseEmitter.emit("notification", post.author.toString(), popNotif);
@@ -100,6 +102,7 @@ export async function POST(
           actor: decoded.userId,
           type: "comment",
           post: id,
+          comment: comment._id,
         });
         const popNotif = await Notification.findById(notif._id).populate("actor", "name handle avatar handleColor");
         sseEmitter.emit("notification", parent.author.toString(), popNotif);

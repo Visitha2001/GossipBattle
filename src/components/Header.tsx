@@ -130,7 +130,7 @@ export function Header() {
       <div className="container flex h-16 items-center justify-between mx-auto px-4 md:px-6 gap-2">
         <div className="flex items-center space-x-2 md:space-x-4">
           <Link href="/">
-            <span className="font-extrabold text-xl md:text-2xl tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-primary to-indigo-500 hover:opacity-80 transition-opacity cursor-pointer">
+            <span className="font-extrabold text-xl md:text-2xl tracking-tighter text-primary hover:opacity-80 transition-opacity cursor-pointer">
               GossipBattle
             </span>
           </Link>

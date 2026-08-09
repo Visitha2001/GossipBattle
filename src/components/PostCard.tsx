@@ -8,7 +8,7 @@ import { ConfirmModal } from "./ConfirmModal";
 import { ShareModal } from "./ShareModal";
 import { CreatePostModal } from "./CreatePostModal";
 import { ImageSliderModal } from "./ImageSliderModal";
-import { MessageSquare, Share2, Trash2, Eye, Edit2, UserPlus } from "lucide-react";
+import { MessageSquare, Share2, Trash2, Eye, Edit2, UserPlus, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -19,6 +19,7 @@ export function PostCard({ post, onUpdate }: { post: any; onUpdate: () => void }
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [upvotes, setUpvotes] = useState(post.upvotes?.length || 0);
   const [downvotes, setDownvotes] = useState(post.downvotes?.length || 0);
   const [hasUpvoted, setHasUpvoted] = useState(post.upvotes?.includes(user?._id) || false);
@@ -127,7 +128,7 @@ export function PostCard({ post, onUpdate }: { post: any; onUpdate: () => void }
   };
 
   return (
-    <div id={post._id} ref={cardRef} className="bg-card rounded-xl p-4 shadow-sm border border-border mb-4 scroll-mt-20">
+    <div id={post._id} ref={cardRef} className="bg-card rounded-xl p-2 md:p-3 shadow-sm border border-border mb-2 md:mb-3 scroll-mt-20">
       <div className="flex justify-between items-start mb-3 gap-2">
         <div className="flex items-start gap-3 flex-1 min-w-0">
           {post.author?.avatar ? (
@@ -169,19 +170,32 @@ export function PostCard({ post, onUpdate }: { post: any; onUpdate: () => void }
           </div>
         </div>
         {user && user._id === post.author?._id && (
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="relative">
             <button 
-              onClick={() => setIsEditModalOpen(true)}
-              className="flex items-center space-x-1 hover:text-primary transition-colors focus:outline-none text-muted-foreground"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="p-1 text-muted-foreground hover:bg-muted rounded-md transition-colors"
             >
-              <Edit2 size={16} />
+              <MoreHorizontal size={16} />
             </button>
-            <button 
-              onClick={() => setIsDeleteModalOpen(true)}
-              className="flex items-center space-x-1 hover:text-destructive transition-colors focus:outline-none text-muted-foreground"
-            >
-              <Trash2 size={16} />
-            </button>
+            {isMenuOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setIsMenuOpen(false)}></div>
+                <div className="absolute top-full right-0 mt-1 bg-popover border border-border rounded-md shadow-md z-20 w-32 overflow-hidden flex flex-col py-1">
+                  <button 
+                    onClick={() => { setIsMenuOpen(false); setIsEditModalOpen(true); }}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-muted flex items-center gap-2 text-foreground"
+                  >
+                    <Edit2 size={14} /> Edit
+                  </button>
+                  <button 
+                    onClick={() => { setIsMenuOpen(false); setIsDeleteModalOpen(true); }}
+                    className="w-full text-left px-3 py-2 text-sm text-destructive hover:bg-muted flex items-center gap-2"
+                  >
+                    <Trash2 size={14} /> Delete
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -285,7 +299,7 @@ export function PostCard({ post, onUpdate }: { post: any; onUpdate: () => void }
       </div>
 
       {showComments && (
-        <div className="border-t p-4">
+        <div className="border-t p-1 md:p-3">
           <CommentSection postId={post._id} postAuthorId={post.author?._id} />
         </div>
       )}

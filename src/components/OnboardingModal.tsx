@@ -5,10 +5,17 @@ import { useState, useEffect } from "react";
 import { useAuthStore } from "@/lib/store";
 import { api } from "@/lib/api";
 
+const DARK_COLORS = [
+  "#d32f2f", "#c2185b", "#7b1fa2", "#512da8", 
+  "#303f9f", "#1976d2", "#0288d1", "#0097a7", 
+  "#00796b", "#388e3c", "#689f38", "#afb42b", 
+  "#e64a19", "#5d4037", "#616161", "#455a64"
+];
+
 export function OnboardingModal() {
   const { user, setUser } = useAuthStore();
   const [handle, setHandle] = useState("@");
-  const [handleColor, setHandleColor] = useState("#ff5722");
+  const [handleColor, setHandleColor] = useState(DARK_COLORS[0]);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -82,15 +89,19 @@ export function OnboardingModal() {
 
           <div className="space-y-2">
             <label className="block text-sm font-semibold tracking-wide text-foreground/80">HANDLE COLOR</label>
-            <div className="flex items-center p-2 border border-border/50 rounded-xl bg-background/50 transition-all hover:border-primary/30">
-              <input
-                type="color"
-                value={handleColor}
-                onChange={(e) => setHandleColor(e.target.value)}
-                className="h-10 w-12 rounded-lg cursor-pointer border-0 p-0 bg-transparent"
-              />
-              <span className="ml-3 text-base font-mono uppercase tracking-wider text-muted-foreground">{handleColor}</span>
+            <div className="grid grid-cols-8 gap-2 bg-background/50 p-3 rounded-xl border border-border/50">
+              {DARK_COLORS.map(color => (
+                <button
+                  key={color}
+                  type="button"
+                  onClick={() => setHandleColor(color)}
+                  className={`w-8 h-8 rounded-full transition-transform ${handleColor === color ? 'scale-110 ring-2 ring-primary ring-offset-2 ring-offset-background' : 'hover:scale-105 opacity-80 hover:opacity-100'}`}
+                  style={{ backgroundColor: color }}
+                  aria-label={`Select color ${color}`}
+                />
+              ))}
             </div>
+            <p className="text-xs text-muted-foreground mt-1 ml-1 text-right font-mono uppercase tracking-wider">{handleColor}</p>
           </div>
 
           {error && (

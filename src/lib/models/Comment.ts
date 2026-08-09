@@ -2,6 +2,7 @@ import mongoose, { Document, Model, Schema } from "mongoose";
 
 export interface IComment extends Document {
   content: string;
+  imageUrl?: string;
   author: mongoose.Types.ObjectId;
   post: mongoose.Types.ObjectId;
   side: "none" | "left" | "right";
@@ -16,7 +17,8 @@ export interface IComment extends Document {
 
 const CommentSchema = new Schema<IComment>(
   {
-    content: { type: String, required: true },
+    content: { type: String, required: false },
+    imageUrl: { type: String },
     author: { type: Schema.Types.ObjectId, ref: "User", required: true },
     post: { type: Schema.Types.ObjectId, ref: "Post", required: true },
     side: { type: String, enum: ["none", "left", "right"], default: "none" },
