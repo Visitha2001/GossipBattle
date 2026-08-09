@@ -4,6 +4,7 @@ import connectDB from "@/lib/db";
 import { User } from "@/lib/models/User";
 import { Notification } from "@/lib/models/Notification";
 import jwt from "jsonwebtoken";
+import { sseEmitter } from "@/lib/eventEmitter";
 
 export async function POST(req: Request) {
   try {
@@ -63,11 +64,13 @@ export async function POST(req: Request) {
       });
 
       // Create notification
-      await Notification.create({
+      const notification = await Notification.create({
         user: targetUser._id,
         actor: currentUser._id,
         type: "follow",
       });
+      const populatedNotification = await Notification.findById(notification._id).populate("actor", "name avatar handle handleColor");
+      sseEmitter.emit("notification", targetUser._id.toString(), populatedNotification);
 
       return NextResponse.json({ following: true });
     }

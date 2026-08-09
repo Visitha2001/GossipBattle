@@ -3,8 +3,9 @@ import mongoose, { Document, Model, Schema } from "mongoose";
 export interface INotification extends Document {
   user: mongoose.Types.ObjectId;
   actor: mongoose.Types.ObjectId;
-  type: "mention" | "like" | "comment" | "battle" | "follow";
+  type: "mention" | "like" | "comment" | "battle" | "follow" | "share";
   post?: mongoose.Types.ObjectId;
+  comment?: mongoose.Types.ObjectId;
   read: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -14,8 +15,9 @@ const NotificationSchema = new Schema<INotification>(
   {
     user: { type: Schema.Types.ObjectId, ref: "User", required: true },
     actor: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    type: { type: String, enum: ["mention", "like", "comment", "battle", "follow"], required: true },
+    type: { type: String, enum: ["mention", "like", "comment", "battle", "follow", "share"], required: true },
     post: { type: Schema.Types.ObjectId, ref: "Post" },
+    comment: { type: Schema.Types.ObjectId, ref: "Comment" },
     read: { type: Boolean, default: false },
   },
   {

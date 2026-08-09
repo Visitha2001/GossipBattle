@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 import { useAuthStore } from "@/lib/store";
 import { toast } from "sonner";
 import { UserPlus } from "lucide-react";
+import Link from "next/link";
 
 export function FollowersPanel() {
   const { user } = useAuthStore();
@@ -61,8 +62,12 @@ export function FollowersPanel() {
                 {suggestion.name?.charAt(0).toUpperCase()}
               </div>
               <div className="flex flex-col">
-                <span className="text-sm font-semibold truncate max-w-[100px]">{suggestion.name}</span>
-                <span className="text-xs text-muted-foreground truncate max-w-[100px]">@{suggestion.handle?.replace('@', '')}</span>
+                <Link href={`/profile/${suggestion.handle}`} className="hover:underline text-sm font-semibold truncate max-w-[100px]">
+                  <span>{suggestion.name}</span>
+                </Link>
+                <Link href={`/profile/${suggestion.handle}`} className="hover:underline text-xs text-muted-foreground truncate max-w-[100px]">
+                  <span>{suggestion.handle}</span>
+                </Link>
               </div>
             </div>
             <button

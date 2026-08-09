@@ -6,9 +6,13 @@ import { useAuthStore } from "@/lib/store";
 import { api } from "@/lib/api";
 import { ThemeToggle } from "./ThemeToggle";
 import { Button } from "./ui/button";
-import { LogOut, Bell, Check } from "lucide-react";
+import { LogOut, Bell, Check, User as UserIcon } from "lucide-react";
+import Link from "next/link";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 export function Header() {
+  const router = useRouter();
   const { user, setUser, isLoading, setIsLoading, setIsCreateModalOpen } = useAuthStore();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -46,6 +50,36 @@ export function Header() {
   useEffect(() => {
     if (user) {
       fetchNotifications();
+      
+      const eventSource = new EventSource('/api/notifications/stream');
+      
+      eventSource.onmessage = (event) => {
+        try {
+          const newNotif = JSON.parse(event.data);
+          setNotifications(prev => {
+            // Check if it already exists to prevent duplicates
+            if (prev.find(n => n._id === newNotif._id)) return prev;
+            
+            // Show toast for new notification
+            let msg = `${newNotif.actor?.name || 'Someone'}`;
+            if (newNotif.type === 'mention') msg += " mentioned you in a post.";
+            else if (newNotif.type === 'follow') msg += " started following you.";
+            else if (newNotif.type === 'comment') msg += " commented on your post.";
+            else if (newNotif.type === 'battle') msg += " joined a battle on your post.";
+            else if (newNotif.type === 'like') msg += " liked your post/comment.";
+            else if (newNotif.type === 'share') msg += " shared your post.";
+            toast(msg, { icon: "🔔" });
+
+            return [newNotif, ...prev];
+          });
+        } catch (err) {
+          console.error("Failed to parse SSE data", err);
+        }
+      };
+
+      return () => {
+        eventSource.close();
+      };
     }
   }, [user]);
 
@@ -93,20 +127,22 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/50 bg-background/60 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60 transition-colors duration-300">
-      <div className="container flex h-16 items-center justify-between mx-auto px-6">
-        <div className="flex items-center space-x-4">
-          <span className="font-extrabold text-2xl tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-primary to-indigo-500">
-            GossipBattle
-          </span>
+      <div className="container flex h-16 items-center justify-between mx-auto px-4 md:px-6 gap-2">
+        <div className="flex items-center space-x-2 md:space-x-4">
+          <Link href="/">
+            <span className="font-extrabold text-xl md:text-2xl tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-primary to-indigo-500 hover:opacity-80 transition-opacity cursor-pointer">
+              GossipBattle
+            </span>
+          </Link>
         </div>
         
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-2 md:space-x-4">
           <ThemeToggle />
           
           {isLoading ? (
             <div className="h-9 w-24 bg-muted animate-pulse rounded-md" />
           ) : user ? (
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 md:space-x-4 shrink-0">
               <div className="relative flex items-center" ref={notificationsRef}>
                 <button 
                   onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
@@ -137,15 +173,32 @@ export function Header() {
                             key={notif._id} 
                             onClick={() => {
                               if (!notif.read) handleMarkAsRead(notif._id);
-                              if (notif.post) {
+                              
+                              if (notif.type === 'follow') {
                                 setIsNotificationsOpen(false);
-                                const el = document.getElementById(notif.post);
-                                if (el) el.scrollIntoView({ behavior: 'smooth' });
+                                router.push(`/profile/${notif.actor?.handle}`);
+                              } else if (notif.post) {
+                                setIsNotificationsOpen(false);
+                                let url = `/#${notif.post}`;
+                                if (notif.comment) {
+                                  url = `/?comment=${notif.comment}#${notif.post}`;
+                                }
+                                router.push(url);
+                                
+                                setTimeout(() => {
+                                  const el = document.getElementById(notif.post);
+                                  if (el) {
+                                    el.scrollIntoView({ behavior: 'smooth' });
+                                  }
+                                }, 100);
                               }
                             }}
                             className={`p-3 text-sm cursor-pointer hover:bg-muted/50 transition-colors ${!notif.read ? 'bg-primary/5' : ''}`}
                           >
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 items-start">
+                              {!notif.read && (
+                                <div className="w-2 h-2 bg-primary rounded-full mt-3 shrink-0" />
+                              )}
                               {notif.actor?.avatar ? (
                                 <img src={notif.actor.avatar} alt="Avatar" className="h-8 w-8 rounded-full border" />
                               ) : (
@@ -155,13 +208,17 @@ export function Header() {
                               )}
                               <div>
                                 <p>
-                                  <span className="font-semibold" style={{ color: notif.actor?.handleColor }}>
-                                    {notif.actor?.name}
-                                  </span>{" "}
+                                  <Link href={`/profile/${notif.actor?.handle}`} onClick={(e) => e.stopPropagation()}>
+                                    <span className="font-semibold hover:underline" style={{ color: notif.actor?.handleColor }}>
+                                      {notif.actor?.name}
+                                    </span>
+                                  </Link>{" "}
                                   {notif.type === 'mention' && "mentioned you in a post."}
                                   {notif.type === 'follow' && "started following you."}
                                   {notif.type === 'comment' && "commented on your post."}
                                   {notif.type === 'battle' && "joined a battle on your post."}
+                                  {notif.type === 'like' && "liked your post/comment."}
+                                  {notif.type === 'share' && "shared your post."}
                                 </p>
                                 <span className="text-xs text-muted-foreground">
                                   {new Date(notif.createdAt).toLocaleDateString()}
@@ -176,9 +233,7 @@ export function Header() {
                 )}
               </div>
 
-              <Button onClick={() => setIsCreateModalOpen(true)} className="rounded-full px-6 shadow-md">
-                Create Post
-              </Button>
+
               <div className="relative flex items-center" ref={dropdownRef}>
                 <button 
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -217,6 +272,16 @@ export function Header() {
                     </div>
                   </div>
                   <div className="p-1">
+                    {user.handle && (
+                      <Link
+                        href={`/profile/${user.handle}`}
+                        onClick={() => setIsDropdownOpen(false)}
+                        className="flex w-full items-center rounded-sm px-2 py-1.5 text-sm hover:bg-muted transition-colors cursor-pointer"
+                      >
+                        <UserIcon className="mr-2 h-4 w-4" />
+                        <span>Profile</span>
+                      </Link>
+                    )}
                     <button
                       onClick={() => {
                         setIsDropdownOpen(false);

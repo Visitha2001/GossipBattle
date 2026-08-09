@@ -59,7 +59,7 @@ export async function PATCH(req: Request) {
       const notification = await Notification.findOneAndUpdate(
         { _id: notificationId, user: decoded.userId },
         { read: true },
-        { new: true }
+        { returnDocument: 'after' }
       );
       return NextResponse.json(notification);
     } else {

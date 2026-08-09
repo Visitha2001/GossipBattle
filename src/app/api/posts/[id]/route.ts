@@ -15,7 +15,7 @@ export async function PATCH(
     const post = await Post.findByIdAndUpdate(
       id,
       { $inc: { views: 1 } },
-      { new: true }
+      { returnDocument: 'after' }
     );
     if (!post) {
       return NextResponse.json({ error: "Post not found" }, { status: 404 });

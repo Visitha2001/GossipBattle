@@ -7,8 +7,11 @@ import { CommentSection } from "./CommentSection";
 import { ConfirmModal } from "./ConfirmModal";
 import { ShareModal } from "./ShareModal";
 import { CreatePostModal } from "./CreatePostModal";
-import { MessageSquare, Share2, Trash2, Eye, ArrowUp, ArrowDown, Edit2, UserPlus } from "lucide-react";
+import { ImageSliderModal } from "./ImageSliderModal";
+import { MessageSquare, Share2, Trash2, Eye, Edit2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
 export function PostCard({ post, onUpdate }: { post: any; onUpdate: () => void }) {
   const { user } = useAuthStore();
@@ -21,9 +24,26 @@ export function PostCard({ post, onUpdate }: { post: any; onUpdate: () => void }
   const [hasUpvoted, setHasUpvoted] = useState(post.upvotes?.includes(user?._id) || false);
   const [hasDownvoted, setHasDownvoted] = useState(post.downvotes?.includes(user?._id) || false);
   const [views, setViews] = useState(post.views || 0);
-  const [isFollowing, setIsFollowing] = useState(false); // Can be initialized from user.following if populated, but keep simple
-  
+  const [isFollowing, setIsFollowing] = useState(user?.following?.includes(post.author?._id) || false);
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const commentId = searchParams?.get("comment");
+    if (commentId && typeof window !== "undefined" && window.location.hash === `#${post._id}`) {
+      setShowComments(true);
+      // We will let CommentSection handle the scrolling once it fetches comments
+    }
+  }, [searchParams, post._id]);
+
+  useEffect(() => {
+    if (user?.following && post.author?._id) {
+      setIsFollowing(user.following.includes(post.author._id));
+    }
+  }, [user?.following, post.author?._id]);
+
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isSliderOpen, setIsSliderOpen] = useState(false);
+  const [sliderIndex, setSliderIndex] = useState(0);
   
   const cardRef = useRef<HTMLDivElement>(null);
   const hasViewed = useRef(false);
@@ -72,12 +92,22 @@ export function PostCard({ post, onUpdate }: { post: any; onUpdate: () => void }
     }
   };
 
-  const handleFollow = async () => {
+  const handleFollow = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     try {
       const res = await api.users.follow(post.author._id);
       setIsFollowing(res.following);
-      if (res.following) toast.success(`Followed @${post.author.handle?.replace('@', '')}`);
-      else toast.success(`Unfollowed @${post.author.handle?.replace('@', '')}`);
+      
+      if (user) {
+        const newFollowing = res.following 
+          ? [...(user.following || []), post.author._id]
+          : (user.following || []).filter(id => id !== post.author._id);
+        useAuthStore.getState().setUser({ ...user, following: newFollowing });
+      }
+
+      if (res.following) toast.success(`Followed ${post.author.handle}`);
+      else toast.success(`Unfollowed ${post.author.handle}`);
     } catch (err) {
       toast.error("Failed to follow user");
     }
@@ -87,7 +117,7 @@ export function PostCard({ post, onUpdate }: { post: any; onUpdate: () => void }
     const parts = text.split(/([@#]\w+)/g);
     return parts.map((part, i) => {
       if (part.startsWith("@")) {
-        return <span key={i} className="text-primary hover:underline cursor-pointer font-medium">{part}</span>;
+        return <Link key={i} href={`/profile/${part}`} className="text-primary hover:underline cursor-pointer font-medium" onClick={(e) => e.stopPropagation()}>{part}</Link>;
       }
       if (part.startsWith("#")) {
         return <span key={i} className="text-primary hover:underline cursor-pointer">{part}</span>;
@@ -98,18 +128,26 @@ export function PostCard({ post, onUpdate }: { post: any; onUpdate: () => void }
 
   return (
     <div id={post._id} ref={cardRef} className="bg-card rounded-xl p-4 shadow-sm border border-border mb-4 scroll-mt-20">
-      <div className="flex justify-between items-start mb-3">
-        <div className="flex items-center gap-3">
-          <div
-            className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold"
-            style={{ backgroundColor: post.author?.handleColor || "var(--primary)" }}
-          >
-            {post.author?.name?.charAt(0).toUpperCase()}
-          </div>
-          <div>
-            <div className="font-bold flex items-center gap-2">
-              {post.author?.name} 
-              {post.feeling && <span className="font-normal text-muted-foreground ml-1">is feeling {post.feeling}</span>}
+      <div className="flex justify-between items-start mb-3 gap-2">
+        <div className="flex items-start gap-3 flex-1 min-w-0">
+          {post.author?.avatar ? (
+            <img 
+              src={post.author.avatar} 
+              alt={`${post.author.name}'s avatar`} 
+              className="w-10 h-10 rounded-full border object-cover"
+            />
+          ) : (
+            <div
+              className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold"
+              style={{ backgroundColor: post.author?.handleColor || "var(--primary)" }}
+            >
+              {post.author?.name?.charAt(0).toUpperCase()}
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <div className="font-bold flex flex-wrap items-center gap-x-2 gap-y-1">
+              <span className="break-words">{post.author?.name}</span>
+              {post.feeling && <span className="font-normal text-sm text-muted-foreground">is feeling {post.feeling}</span>}
               {user && user._id !== post.author?._id && (
                 <button
                   onClick={handleFollow}
@@ -120,16 +158,18 @@ export function PostCard({ post, onUpdate }: { post: any; onUpdate: () => void }
                 </button>
               )}
             </div>
-            <div 
-              className="text-xs text-muted-foreground"
-              style={{ color: post.author?.handleColor }}
-            >
-              @{post.author?.handle?.replace('@', '')}
-            </div>
+            <Link href={`/profile/${post.author?.handle}`}>
+              <div 
+                className="text-xs text-muted-foreground hover:underline cursor-pointer"
+                style={{ color: post.author?.handleColor }}
+              >
+                {post.author?.handle}
+              </div>
+            </Link>
           </div>
         </div>
         {user && user._id === post.author?._id && (
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 shrink-0">
             <button 
               onClick={() => setIsEditModalOpen(true)}
               className="flex items-center space-x-1 hover:text-primary transition-colors focus:outline-none text-muted-foreground"
@@ -151,44 +191,83 @@ export function PostCard({ post, onUpdate }: { post: any; onUpdate: () => void }
       {post.imageUrls && post.imageUrls.length > 0 && (
         <div className={`gap-2 mb-3 ${post.imageUrls.length === 1 ? '' : 'grid aspect-square'} ${post.imageUrls.length === 2 ? 'grid-cols-2' : ''} ${post.imageUrls.length >= 4 ? 'grid-cols-2 grid-rows-2' : ''}`}>
           {post.imageUrls.length === 1 && (
-            <img src={post.imageUrls[0]} alt="Post image" className="rounded-lg w-full max-h-[400px] object-cover" />
+            <img 
+              src={post.imageUrls[0]} 
+              alt="Post image" 
+              className="rounded-lg w-full max-h-[400px] object-cover cursor-pointer" 
+              onClick={() => { setSliderIndex(0); setIsSliderOpen(true); }}
+            />
           )}
           {post.imageUrls.length === 2 && post.imageUrls.map((url: string, index: number) => (
-            <img key={index} src={url} alt={`Post image ${index}`} className="rounded-lg w-full h-full object-cover" />
+            <img 
+              key={index} 
+              src={url} 
+              alt={`Post image ${index}`} 
+              className="rounded-lg w-full h-full object-cover cursor-pointer" 
+              onClick={() => { setSliderIndex(index); setIsSliderOpen(true); }}
+            />
           ))}
           {post.imageUrls.length === 3 && (
             <div className="grid grid-cols-2 gap-2 w-full h-full">
               <div className="grid grid-rows-2 gap-2 h-full">
-                <img src={post.imageUrls[1]} alt="Post image 1" className="rounded-lg w-full h-full object-cover" />
-                <img src={post.imageUrls[2]} alt="Post image 2" className="rounded-lg w-full h-full object-cover" />
+                <img 
+                  src={post.imageUrls[1]} 
+                  alt="Post image 1" 
+                  className="rounded-lg w-full h-full object-cover cursor-pointer" 
+                  onClick={() => { setSliderIndex(1); setIsSliderOpen(true); }}
+                />
+                <img 
+                  src={post.imageUrls[2]} 
+                  alt="Post image 2" 
+                  className="rounded-lg w-full h-full object-cover cursor-pointer" 
+                  onClick={() => { setSliderIndex(2); setIsSliderOpen(true); }}
+                />
               </div>
               <div className="h-full">
-                <img src={post.imageUrls[0]} alt="Post image 0" className="rounded-lg w-full h-full object-cover" />
+                <img 
+                  src={post.imageUrls[0]} 
+                  alt="Post image 0" 
+                  className="rounded-lg w-full h-full object-cover cursor-pointer" 
+                  onClick={() => { setSliderIndex(0); setIsSliderOpen(true); }}
+                />
               </div>
             </div>
           )}
           {post.imageUrls.length >= 4 && post.imageUrls.slice(0, 4).map((url: string, index: number) => (
-            <img key={index} src={url} alt={`Post image ${index}`} className="rounded-lg w-full h-full object-cover" />
+            <div 
+              key={index} 
+              className="relative w-full h-full cursor-pointer rounded-lg overflow-hidden"
+              onClick={() => { setSliderIndex(index); setIsSliderOpen(true); }}
+            >
+              <img src={url} alt={`Post image ${index}`} className="w-full h-full object-cover" />
+              {index === 3 && post.imageUrls.length > 4 && (
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white font-bold text-3xl">
+                  +{post.imageUrls.length - 4}
+                </div>
+              )}
+            </div>
           ))}
         </div>
       )}
       
       {/* Fallback for old posts with imageUrl */}
       {post.imageUrl && (!post.imageUrls || post.imageUrls.length === 0) && (
-        <img src={post.imageUrl} alt="Post image" className="rounded-lg w-full max-h-[400px] object-cover mb-3" />
+        <img 
+          src={post.imageUrl} 
+          alt="Post image" 
+          className="rounded-lg w-full max-h-[400px] object-cover mb-3 cursor-pointer" 
+          onClick={() => { setSliderIndex(0); setIsSliderOpen(true); }}
+        />
       )}
 
       <div className="flex items-center justify-between text-muted-foreground pt-3 border-t border-border mt-3 text-sm">
         <div className="flex gap-4">
-          <div className="flex gap-1 items-center bg-muted/50 rounded-full px-2 py-1">
-            <button onClick={() => handleVote("W")} className={`flex items-center hover:text-green-500 transition-colors ${hasUpvoted ? 'text-green-500' : ''}`}>
-              <ArrowUp size={16} />
-              <span className="font-medium ml-1">{upvotes}</span>
+          <div className="flex gap-2 items-center">
+            <button onClick={() => handleVote("W")} className={`flex items-center gap-2 pl-4 pr-1.5 py-1 rounded-full text-xs font-bold transition-colors ${hasUpvoted ? 'bg-green-500 text-white' : 'bg-green-500/10 text-green-500 hover:bg-green-500/20'}`}>
+              W <span className={`flex items-center justify-center min-w-[20px] h-5 px-1 rounded-full text-[10px] ${hasUpvoted ? 'bg-white/30' : 'bg-green-500/20'}`}>{upvotes}</span>
             </button>
-            <span className="mx-1 text-border">|</span>
-            <button onClick={() => handleVote("L")} className={`flex items-center hover:text-red-500 transition-colors ${hasDownvoted ? 'text-red-500' : ''}`}>
-              <ArrowDown size={16} />
-              <span className="font-medium ml-1">{downvotes}</span>
+            <button onClick={() => handleVote("L")} className={`flex items-center gap-2 pl-4 pr-1.5 py-1 rounded-full text-xs font-bold transition-colors ${hasDownvoted ? 'bg-red-500 text-white' : 'bg-red-500/10 text-red-500 hover:bg-red-500/20'}`}>
+              L <span className={`flex items-center justify-center min-w-[20px] h-5 px-1 rounded-full text-[10px] ${hasDownvoted ? 'bg-white/30' : 'bg-red-500/20'}`}>{downvotes}</span>
             </button>
           </div>
           <button onClick={() => setShowComments(!showComments)} className="flex items-center gap-1 hover:text-primary transition-colors">
@@ -224,7 +303,13 @@ export function PostCard({ post, onUpdate }: { post: any; onUpdate: () => void }
       <ShareModal 
         isOpen={isShareModalOpen} 
         onClose={() => setIsShareModalOpen(false)} 
-        postId={post._id} 
+        url={`${window.location.origin}/#${post._id}`} 
+      />
+      <ImageSliderModal
+        isOpen={isSliderOpen}
+        onClose={() => setIsSliderOpen(false)}
+        images={post.imageUrls && post.imageUrls.length > 0 ? post.imageUrls : [post.imageUrl].filter(Boolean)}
+        initialIndex={sliderIndex}
       />
       <CreatePostModal 
         isOpen={isEditModalOpen} 

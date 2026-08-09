@@ -2,32 +2,49 @@
 
 import { X, Copy, Check } from "lucide-react";
 import { useState } from "react";
+import { useAuthStore } from "@/lib/store";
+import { api } from "@/lib/api";
 
 interface ShareModalProps {
   isOpen: boolean;
   onClose: () => void;
-  postId: string;
+  url: string;
 }
 
-export function ShareModal({ isOpen, onClose, postId }: ShareModalProps) {
+export function ShareModal({ isOpen, onClose, url }: ShareModalProps) {
   const [copied, setCopied] = useState(false);
+  const { user } = useAuthStore();
   
   if (!isOpen) return null;
 
-  const url = typeof window !== "undefined" ? `${window.location.origin}/post/${postId}` : "";
+  const registerShare = async () => {
+    if (!user) return;
+    try {
+      // Just extract ID from hash or path if needed, but since share endpoint expects ID
+      const idMatch = url.match(/#([a-zA-Z0-9_]+)$/) || url.match(/\/post\/([a-zA-Z0-9_]+)$/);
+      if (idMatch && idMatch[1]) {
+        await api.posts.share(idMatch[1]);
+      }
+    } catch (err) {
+      console.error("Failed to register share", err);
+    }
+  };
 
   const handleCopy = () => {
     navigator.clipboard.writeText(url);
     setCopied(true);
+    registerShare();
     setTimeout(() => setCopied(false), 2000);
   };
 
   const handleTwitterShare = () => {
     window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent("Check out this gossip!")}`, "_blank");
+    registerShare();
   };
 
   const handleFacebookShare = () => {
     window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, "_blank");
+    registerShare();
   };
 
   return (

@@ -23,7 +23,7 @@ export function CreatePostModal({ isOpen, onClose, onPostCreated, editPost }: { 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    if (!searchType || !cursorPosition || cursorPosition.word.length < 2) {
+    if (!searchType || !cursorPosition || cursorPosition.word.length < 1) {
       setSuggestions([]);
       return;
     }
@@ -94,7 +94,7 @@ export function CreatePostModal({ isOpen, onClose, onPostCreated, editPost }: { 
     const wordLength = afterMatch ? afterMatch[0].length : cursorPosition.word.length;
     const after = content.slice(cursorPosition.start + wordLength);
     
-    const prefix = searchType === "mention" ? "@" : "#";
+    const prefix = searchType === "mention" ? (suggestionText.startsWith('@') ? "" : "@") : (suggestionText.startsWith('#') ? "" : "#");
     const newContent = `${before}${prefix}${suggestionText} ${after}`;
     
     setContent(newContent);
@@ -206,7 +206,7 @@ export function CreatePostModal({ isOpen, onClose, onPostCreated, editPost }: { 
                         </div>
                         <div className="flex flex-col">
                           <span className="font-medium">{s.name}</span>
-                          <span className="text-xs text-muted-foreground">@{s.handle}</span>
+                          <span className="text-xs text-muted-foreground">{s.handle?.startsWith('@') ? s.handle : `@${s.handle}`}</span>
                         </div>
                       </>
                     ) : (
@@ -269,11 +269,17 @@ export function CreatePostModal({ isOpen, onClose, onPostCreated, editPost }: { 
               </button>
               <input 
                 type="text"
+                list="feelings-list"
                 value={feeling} 
                 onChange={(e) => setFeeling(e.target.value)}
                 placeholder="Feeling..."
                 className="bg-transparent border border-input rounded-md px-2 py-1 text-sm text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring w-32"
               />
+              <datalist id="feelings-list">
+                {FEELINGS.map(f => (
+                  <option key={f} value={f} />
+                ))}
+              </datalist>
             </div>
             {showEmojiPicker && (
               <div className="absolute top-10 left-0 z-50">

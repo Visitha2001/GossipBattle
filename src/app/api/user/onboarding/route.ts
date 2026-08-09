@@ -36,7 +36,7 @@ export async function POST(req: Request) {
     const user = await User.findByIdAndUpdate(
       decoded.userId,
       { handle, handleColor },
-      { new: true }
+      { returnDocument: 'after' }
     ).select("-googleId");
 
     if (!user) {

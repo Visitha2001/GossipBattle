@@ -83,7 +83,7 @@ export async function POST(req: Request) {
     // Parse Mentions
     const mentions = content.match(/@(\w+)/g);
     if (mentions && mentions.length > 0) {
-      const uniqueHandles = [...new Set(mentions.map((m: string) => m.slice(1)))] as string[];
+      const uniqueHandles = [...new Set(mentions)] as string[];
       const mentionedUsers = await User.find({ handle: { $in: uniqueHandles } });
       
       const notifications = mentionedUsers
