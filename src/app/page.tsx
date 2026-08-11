@@ -20,13 +20,15 @@ export default function Home() {
         <div className="absolute bottom-[-20%] left-[20%] w-[60%] h-[60%] rounded-full bg-purple-500/10 blur-[150px]" />
       </div>
 
-      <main className="w-full max-w-7xl mx-auto px-6 py-6 z-10 grid grid-cols-1 md:grid-cols-4 gap-6 items-start mt-4">
-        <div className="md:col-span-3">
+      <main className="w-full max-w-[1400px] mx-auto px-2 md:px-6 py-2 md:py-6 z-10 relative flex justify-center items-start mt-1 md:mt-4 min-h-[calc(100vh-8rem)]">
+        <div className="w-full max-w-2xl shrink-0">
           <PostFeed key={refreshFeedKey} />
         </div>
         
-        <div className="hidden md:block md:col-span-1">
-          <FollowersPanel />
+        <div className="hidden lg:block absolute left-[50%] top-2 md:top-6 bottom-0 w-[264px] xl:w-[304px] ml-[336px] pl-10 pointer-events-none">
+          <div className="pointer-events-auto w-full sticky top-2 md:top-6">
+            <FollowersPanel />
+          </div>
         </div>
 
         <CreatePostModal 

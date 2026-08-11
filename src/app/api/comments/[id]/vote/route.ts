@@ -56,6 +56,7 @@ export async function POST(
             actor: userId,
             type: "like",
             post: comment.post,
+            comment: comment._id,
           });
           const populatedNotif = await notif.populate("actor", "name handle avatar handleColor");
           sseEmitter.emit("notification", comment.author.toString(), populatedNotif);

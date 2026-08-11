@@ -43,11 +43,11 @@ export function FollowersPanel() {
   };
 
   if (!user) return null;
-  if (loading) return <div className="animate-pulse bg-card p-4 rounded-xl">Loading suggestions...</div>;
+  if (loading) return <div className="animate-pulse bg-card p-4 rounded-xl w-full">Loading suggestions...</div>;
   if (suggestions.length === 0) return null;
 
   return (
-    <div className="bg-card rounded-xl p-4 shadow-sm border border-border sticky top-24">
+    <div className="bg-card rounded-xl p-4 shadow-sm border border-border sticky top-24 w-full">
       <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
         <UserPlus size={18} /> Suggested to Follow
       </h3>

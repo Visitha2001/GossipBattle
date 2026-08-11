@@ -22,19 +22,18 @@ export async function POST(req: Request) {
     const buffer = Buffer.from(arrayBuffer);
 
     const result = await new Promise((resolve, reject) => {
-      const uploadStream = cloudinary.uploader.upload_stream(
-        { folder: "gossip_battle" },
+      cloudinary.uploader.upload_stream(
+        { folder: "gossip_battle", resource_type: "auto" },
         (error, result) => {
           if (error) reject(error);
           else resolve(result);
         }
-      );
-      uploadStream.end(buffer);
+      ).end(buffer);
     });
 
     return NextResponse.json({ url: (result as any).secure_url });
-  } catch (error) {
-    console.error("Upload error:", error);
-    return NextResponse.json({ error: "Upload failed" }, { status: 500 });
+  } catch (error: any) {
+    console.error("Upload error:", error?.message || error);
+    return NextResponse.json({ error: error?.message || "Upload failed" }, { status: 500 });
   }
 }

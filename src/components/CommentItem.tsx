@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Reply, EyeOff, Edit2, Trash2, Swords } from "lucide-react";
+import { Reply, EyeOff, Edit2, Trash2, Swords, MoreHorizontal } from "lucide-react";
 import { useAuthStore } from "@/lib/store";
 import { api } from "@/lib/api";
 import { ConfirmModal } from "./ConfirmModal";
@@ -29,6 +29,7 @@ export function CommentItem({ comment, postAuthorId, onReply, onUpdate, replies 
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
 
   const handleVote = async (voteType: "W" | "L") => {
@@ -114,7 +115,7 @@ export function CommentItem({ comment, postAuthorId, onReply, onUpdate, replies 
   };
 
   return (
-    <div id={`comment-${comment._id}`} className={`flex flex-col gap-2 ${comment.parentComment && !isInsideBattle ? 'ml-8 mt-2 relative' : 'mt-3'}`}>
+    <div id={`comment-${comment._id}`} className={`flex flex-col gap-2 ${comment.parentComment && !isInsideBattle ? 'ml-4 md:ml-8 mt-2 relative' : 'mt-3'}`}>
       <div className={`flex gap-2 ${comment.isHidden ? 'opacity-60' : ''}`}>
         {comment.author?.avatar ? (
           <img 
@@ -131,27 +132,50 @@ export function CommentItem({ comment, postAuthorId, onReply, onUpdate, replies 
           </div>
         )}
         <div className="flex-1">
-          <div className="bg-muted px-4 py-2 rounded-2xl rounded-tl-sm text-sm inline-block min-w-[150px] relative border border-primary/40">
+          <div className="bg-muted px-1.5 md:px-2 py-1 rounded-2xl rounded-tl-sm text-sm inline-block min-w-[120px] relative border border-primary/40">
             {/* Optional tail for the bubble */}
             <div className="absolute top-0 -left-1 w-2 h-2 bg-muted rounded-br-sm" style={{ clipPath: 'polygon(100% 0, 0 0, 100% 100%)' }}></div>
             
-            <div className="font-bold mr-2 text-xs mb-1 flex items-center justify-between">
+            <div className="font-bold mr-1 text-xs mb-0.5 flex items-center justify-between">
               <Link href={`/profile/${comment.author?.handle}`}>
                 <span className="hover:underline cursor-pointer" style={{ color: comment.author?.handleColor }}>{comment.author?.handle}</span>
               </Link>
               <div className="flex items-center">
                 {comment.isHidden && isPostAuthor && (
-                  <span className="text-[10px] bg-destructive/20 text-destructive px-1 rounded ml-2 border border-destructive/30 mr-2">Hidden</span>
+                  <span className="text-[10px] bg-destructive/20 text-destructive px-1 rounded ml-1 border border-destructive/30 mr-1">Hidden</span>
                 )}
-                {isCommentAuthor && (
-                  <button onClick={() => setIsEditing(!isEditing)} className="text-muted-foreground hover:text-primary ml-2">
-                    <Edit2 size={12} />
-                  </button>
-                )}
-                {canDelete && (
-                  <button onClick={() => setIsDeleteModalOpen(true)} className="text-muted-foreground hover:text-destructive ml-2">
-                    <Trash2 size={12} />
-                  </button>
+                {(isCommentAuthor || canDelete) && (
+                  <div className="relative ml-0.5">
+                    <button 
+                      onClick={() => setIsMenuOpen(!isMenuOpen)}
+                      className="text-muted-foreground hover:text-primary transition-colors p-0.5 rounded-md"
+                    >
+                      <MoreHorizontal size={14} />
+                    </button>
+                    {isMenuOpen && (
+                      <>
+                        <div className="fixed inset-0 z-10" onClick={() => setIsMenuOpen(false)}></div>
+                        <div className="absolute top-full right-0 mt-1 bg-popover border border-border rounded-md shadow-md z-20 w-28 overflow-hidden flex flex-col py-1">
+                          {isCommentAuthor && (
+                            <button 
+                              onClick={() => { setIsMenuOpen(false); setIsEditing(!isEditing); }} 
+                              className="w-full text-left px-3 py-2 text-xs hover:bg-muted flex items-center gap-2 text-foreground"
+                            >
+                              <Edit2 size={12} /> Edit
+                            </button>
+                          )}
+                          {canDelete && (
+                            <button 
+                              onClick={() => { setIsMenuOpen(false); setIsDeleteModalOpen(true); }} 
+                              className="w-full text-left px-3 py-2 text-xs text-destructive hover:bg-muted flex items-center gap-2"
+                            >
+                              <Trash2 size={12} /> Delete
+                            </button>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
@@ -159,18 +183,21 @@ export function CommentItem({ comment, postAuthorId, onReply, onUpdate, replies 
               <span className="text-muted-foreground italic text-xs">This comment was hidden by the author</span>
             ) : (
               <div className="whitespace-pre-wrap">
-                {comment.content?.length > 200 && !isExpanded ? (
+                {comment.content && comment.content.length > 200 && !isExpanded ? (
                   <>
                     {renderContent(comment.content.substring(0, 200) + "... ")}
                     <button onClick={() => setIsExpanded(true)} className="text-primary hover:underline font-medium text-xs ml-1">See more</button>
                   </>
-                ) : (
+                ) : comment.content ? (
                   <>
                     {renderContent(comment.content)}
-                    {comment.content?.length > 200 && (
+                    {comment.content.length > 200 && (
                       <button onClick={() => setIsExpanded(false)} className="text-primary hover:underline font-medium text-xs ml-1 mt-1 block">Show less</button>
                     )}
                   </>
+                ) : null}
+                {comment.imageUrl && (
+                  <img src={comment.imageUrl} alt="Comment attachment" className="mt-2 max-w-full rounded-lg max-h-48 object-contain" />
                 )}
               </div>
             )}

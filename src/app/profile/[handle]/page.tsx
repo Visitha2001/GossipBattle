@@ -125,9 +125,22 @@ export default function ProfilePage({ params }: { params: Promise<{ handle: stri
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
-        <div className="flex items-center justify-center h-[60vh]">
-          <Loader2 className="animate-spin text-primary" size={32} />
-        </div>
+        <main className="max-w-5xl mx-auto py-4 md:py-6 px-2 md:px-4">
+          <div className="relative w-full h-48 md:h-64 bg-muted rounded-xl animate-pulse"></div>
+          <div className="relative sm:-mt-2 -mt-18 sm:px-6 pb-6">
+            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 -mt-12 sm:-mt-16 mb-2">
+              <div className="flex items-end gap-4 relative z-10">
+                <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-background bg-muted animate-pulse"></div>
+                <div className="pb-3 pt-20 sm:pb-4 space-y-2">
+                  <div className="h-6 w-32 bg-muted rounded animate-pulse"></div>
+                  <div className="h-4 w-24 bg-muted rounded animate-pulse"></div>
+                </div>
+              </div>
+            </div>
+            <div className="mt-2 h-4 w-full max-w-2xl bg-muted rounded animate-pulse"></div>
+            <div className="mt-2 h-4 w-3/4 max-w-xl bg-muted rounded animate-pulse"></div>
+          </div>
+        </main>
       </div>
     );
   }
@@ -146,7 +159,7 @@ export default function ProfilePage({ params }: { params: Promise<{ handle: stri
 
   return (
     <div className="min-h-screen bg-background">
-      <main className="max-w-5xl mx-auto py-6 px-4">
+      <main className="max-w-5xl mx-auto py-4 md:py-6 px-2 md:px-4">
         {/* Cover Photo */}
         <div className="relative w-full h-48 md:h-64 bg-muted rounded-xl overflow-hidden shadow-sm">
           {profile.coverPhoto ? (
@@ -232,7 +245,7 @@ export default function ProfilePage({ params }: { params: Promise<{ handle: stri
                   </button>
                   {showEmojiPicker && (
                     <div className="absolute top-full left-0 z-50 mt-1">
-                      <EmojiPicker onEmojiClick={(emojiObject) => {
+                      <EmojiPicker theme={"dark" as any} onEmojiClick={(emojiObject) => {
                         setEditBio((prev) => prev + emojiObject.emoji);
                         setShowEmojiPicker(false);
                       }} />
