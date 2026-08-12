@@ -6,17 +6,26 @@ import { User } from "@/lib/models/User";
 import { Hashtag } from "@/lib/models/Hashtag";
 import { Notification } from "@/lib/models/Notification";
 import jwt from "jsonwebtoken";
+import { getFeedPosts } from "@/lib/feedAlgorithm";
 
 export async function GET(req: Request) {
   try {
     await connectDB();
 
-    // In a real app, you might use a more complex algorithm for "feed"
-    // Here we'll just sort by createdAt desc for simplicity, but could incorporate likes/views
-    const posts = await Post.find()
-      .populate("author", "name handle avatar handleColor")
-      .sort({ createdAt: -1 })
-      .limit(50);
+    const cookieStore = await cookies();
+    const token = cookieStore.get("auth_token")?.value;
+    
+    let userId: string | undefined;
+    if (token) {
+      try {
+        const decoded: any = jwt.verify(token, process.env.JWT_SECRET || "");
+        userId = decoded.userId;
+      } catch (e) {
+        // Ignore invalid tokens for feed fetching
+      }
+    }
+
+    const posts = await getFeedPosts(userId);
 
     return NextResponse.json(posts);
   } catch (error) {

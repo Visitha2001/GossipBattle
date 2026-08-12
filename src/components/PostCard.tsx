@@ -69,14 +69,59 @@ export function PostCard({ post, onUpdate }: { post: any; onUpdate: () => void }
 
   const handleVote = async (voteType: "W" | "L") => {
     if (!user) return;
+    
+    // Optimistic Update
+    const prevUpvoted = hasUpvoted;
+    const prevDownvoted = hasDownvoted;
+    const prevUpvotes = upvotes;
+    const prevDownvotes = downvotes;
+
+    let newUpvotes = upvotes;
+    let newDownvotes = downvotes;
+
+    if (voteType === "W") {
+      if (hasUpvoted) {
+        newUpvotes--;
+        setHasUpvoted(false);
+      } else {
+        newUpvotes++;
+        setHasUpvoted(true);
+        if (hasDownvoted) {
+          newDownvotes--;
+          setHasDownvoted(false);
+        }
+      }
+    } else {
+      if (hasDownvoted) {
+        newDownvotes--;
+        setHasDownvoted(false);
+      } else {
+        newDownvotes++;
+        setHasDownvoted(true);
+        if (hasUpvoted) {
+          newUpvotes--;
+          setHasUpvoted(false);
+        }
+      }
+    }
+
+    setUpvotes(newUpvotes);
+    setDownvotes(newDownvotes);
+
     try {
       const data = await api.posts.vote(post._id, voteType);
+      // Sync with server if needed
       setUpvotes(data.upvotes);
       setDownvotes(data.downvotes);
       setHasUpvoted(data.hasUpvoted);
       setHasDownvoted(data.hasDownvoted);
     } catch (err) {
       console.error(err);
+      // Revert on error
+      setUpvotes(prevUpvotes);
+      setDownvotes(prevDownvotes);
+      setHasUpvoted(prevUpvoted);
+      setHasDownvoted(prevDownvoted);
     }
   };
 

@@ -137,31 +137,60 @@ export function CommentSection({ postId, postAuthorId }: { postId: string, postA
     e.preventDefault();
     if (!newComment.trim() && !selectedImage && !gifUrl) return;
 
+    if (!user) return; // Should not happen as input is hidden if not logged in
+
     setIsSubmitting(true);
     const toastId = selectedImage ? toast.loading("Uploading image...") : undefined;
     
+    // Optimistic comment creation
+    const tempId = `temp-${Date.now()}`;
+    const optimisticComment = {
+      _id: tempId,
+      content: newComment,
+      imageUrl: gifUrl || (selectedImage ? URL.createObjectURL(selectedImage) : undefined),
+      author: user,
+      createdAt: new Date().toISOString(),
+      upvotes: [],
+      downvotes: [],
+      side: "none",
+      isBattle: false,
+      parentComment: replyingTo?.id,
+      post: postId
+    };
+
+    setComments(prev => [...prev, optimisticComment]);
+    
+    const commentContent = newComment;
+    const commentImage = selectedImage;
+    const commentGif = gifUrl;
+    const commentReplyingTo = replyingTo;
+
+    setNewComment("");
+    setSelectedImage(null);
+    setGifUrl(null);
+    setImagePreview(null);
+    setReplyingTo(null);
+
     try {
-      let imageUrl = gifUrl || undefined;
-      if (selectedImage) {
-        const uploadRes = await api.upload.image(selectedImage);
+      let imageUrl = commentGif || undefined;
+      if (commentImage) {
+        const uploadRes = await api.upload.image(commentImage);
         imageUrl = uploadRes.url;
       }
 
       await api.comments.create(postId, { 
-        content: newComment, 
+        content: commentContent, 
         imageUrl,
-        parentComment: replyingTo?.id
+        parentComment: commentReplyingTo?.id
       });
-      setNewComment("");
-      setSelectedImage(null);
-      setGifUrl(null);
-      setImagePreview(null);
-      setReplyingTo(null);
+      
       if (toastId) toast.success("Comment posted!", { id: toastId });
-      fetchComments();
+      fetchComments(); // Fetch real comments to replace the optimistic one
     } catch (err) {
       console.error(err);
       if (toastId) toast.error("Failed to post comment", { id: toastId });
+      // Revert optimistic comment
+      setComments(prev => prev.filter(c => c._id !== tempId));
     } finally {
       setIsSubmitting(false);
     }
