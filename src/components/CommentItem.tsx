@@ -34,6 +34,45 @@ export function CommentItem({ comment, postAuthorId, onReply, onUpdate, replies 
 
   const handleVote = async (voteType: "W" | "L") => {
     if (!user) return;
+    
+    // Optimistic Update
+    const prevUpvoted = hasUpvoted;
+    const prevDownvoted = hasDownvoted;
+    const prevUpvotes = upvotes;
+    const prevDownvotes = downvotes;
+
+    let newUpvotes = upvotes;
+    let newDownvotes = downvotes;
+
+    if (voteType === "W") {
+      if (hasUpvoted) {
+        newUpvotes--;
+        setHasUpvoted(false);
+      } else {
+        newUpvotes++;
+        setHasUpvoted(true);
+        if (hasDownvoted) {
+          newDownvotes--;
+          setHasDownvoted(false);
+        }
+      }
+    } else {
+      if (hasDownvoted) {
+        newDownvotes--;
+        setHasDownvoted(false);
+      } else {
+        newDownvotes++;
+        setHasDownvoted(true);
+        if (hasUpvoted) {
+          newUpvotes--;
+          setHasUpvoted(false);
+        }
+      }
+    }
+
+    setUpvotes(newUpvotes);
+    setDownvotes(newDownvotes);
+
     try {
       const data = await api.comments.vote(comment._id, voteType);
       setUpvotes(data.upvotes);
@@ -42,6 +81,11 @@ export function CommentItem({ comment, postAuthorId, onReply, onUpdate, replies 
       setHasDownvoted(data.hasDownvoted);
     } catch (err) {
       console.error(err);
+      // Revert on error
+      setUpvotes(prevUpvotes);
+      setDownvotes(prevDownvotes);
+      setHasUpvoted(prevUpvoted);
+      setHasDownvoted(prevDownvoted);
     }
   };
 

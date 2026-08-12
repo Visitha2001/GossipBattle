@@ -2,9 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { ArrowUp } from "lucide-react";
+import { usePathname } from "next/navigation";
 
 export function GoToTop() {
   const [isVisible, setIsVisible] = useState(false);
+  const [mountTime] = useState(Date.now());
+  const pathname = usePathname();
 
   useEffect(() => {
     const toggleVisibility = () => {
@@ -19,11 +22,27 @@ export function GoToTop() {
     return () => window.removeEventListener("scroll", toggleVisibility);
   }, []);
 
-  const scrollToTop = () => {
+  const scrollToTop = async () => {
     window.scrollTo({
       top: 0,
       behavior: "smooth",
     });
+
+    if (pathname === "/") {
+      try {
+        const res = await fetch(`/api/posts/check-new?since=${mountTime}`);
+        const data = await res.json();
+        if (data.hasNew) {
+          window.scrollTo(0, 0);
+          if ('scrollRestoration' in history) {
+            history.scrollRestoration = 'manual';
+          }
+          window.location.reload();
+        }
+      } catch (err) {
+        console.error("Failed to check for new posts:", err);
+      }
+    }
   };
 
   if (!isVisible) return null;

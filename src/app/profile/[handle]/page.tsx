@@ -55,6 +55,7 @@ export default function ProfilePage({ params }: { params: Promise<{ handle: stri
   };
 
   useEffect(() => {
+    window.scrollTo(0, 0);
     fetchProfile();
   }, [handle]);
 
