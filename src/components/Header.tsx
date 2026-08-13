@@ -6,7 +6,7 @@ import { useAuthStore } from "@/lib/store";
 import { api } from "@/lib/api";
 import { ThemeToggle } from "./ThemeToggle";
 import { Button } from "./ui/button";
-import { LogOut, Bell, Check, User as UserIcon } from "lucide-react";
+import { LogOut, Bell, Check, User as UserIcon, Users } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -68,6 +68,7 @@ export function Header() {
             else if (newNotif.type === 'battle') msg += " joined a battle on your post.";
             else if (newNotif.type === 'like') msg += " liked your post/comment.";
             else if (newNotif.type === 'share') msg += " shared your post.";
+            else if (newNotif.type === 'group_invite') msg += " invited you to a group.";
             toast(msg, { icon: "🔔" });
 
             return [newNotif, ...prev];
@@ -177,6 +178,11 @@ export function Header() {
                               if (notif.type === 'follow') {
                                 setIsNotificationsOpen(false);
                                 router.push(`/profile/${notif.actor?.handle}`);
+                              } else if (notif.type === 'group_invite') {
+                                setIsNotificationsOpen(false);
+                                if (notif.group) {
+                                  router.push(`/groups/${notif.group}`);
+                                }
                               } else if (notif.post) {
                                 setIsNotificationsOpen(false);
                                 let url = `/#${notif.post}`;
@@ -219,8 +225,27 @@ export function Header() {
                                   {notif.type === 'battle' && "joined a battle on your post."}
                                   {notif.type === 'like' && "liked your post/comment."}
                                   {notif.type === 'share' && "shared your post."}
+                                  {notif.type === 'group_invite' && "invited you to a group."}
                                 </p>
-                                <span className="text-xs text-muted-foreground">
+                                {notif.type === 'group_invite' && (
+                                  <button 
+                                    onClick={async (e) => {
+                                      e.stopPropagation();
+                                      try {
+                                        await fetch(`/api/groups/${notif.group}/members`, { method: "POST" });
+                                        toast.success("Joined group!");
+                                        handleMarkAsRead(notif._id);
+                                        router.push(`/groups/${notif.group}`);
+                                      } catch (err) {
+                                        toast.error("Failed to join group");
+                                      }
+                                    }}
+                                    className="mt-1 bg-primary text-primary-foreground hover:bg-primary/90 px-3 py-1 rounded text-xs font-medium transition-colors shadow-sm"
+                                  >
+                                    Accept Invite
+                                  </button>
+                                )}
+                                <span className="text-xs text-muted-foreground block mt-1">
                                   {new Date(notif.createdAt).toLocaleDateString()}
                                 </span>
                               </div>
@@ -282,6 +307,14 @@ export function Header() {
                         <span>Profile</span>
                       </Link>
                     )}
+                    <Link
+                      href={`/groups`}
+                      onClick={() => setIsDropdownOpen(false)}
+                      className="flex w-full items-center rounded-sm px-2 py-1.5 text-sm hover:bg-muted transition-colors cursor-pointer"
+                    >
+                      <Users className="mr-2 h-4 w-4" />
+                      <span>Groups</span>
+                    </Link>
                     <button
                       onClick={() => {
                         setIsDropdownOpen(false);

@@ -105,21 +105,31 @@ export default function ProfilePage({ params }: { params: Promise<{ handle: stri
   };
 
   const handleFollowToggle = async (userId: string, isCurrentlyFollowing: boolean) => {
+    // Optimistic UI update
+    setProfile((prev: any) => {
+      let newFollowers = [...(prev.followers || [])];
+      
+      if (isCurrentlyFollowing) {
+        newFollowers = newFollowers.filter((f: any) => f._id !== user?._id);
+      } else {
+        newFollowers.push({ _id: user?._id, name: user?.name, handle: user?.handle, avatar: user?.avatar, handleColor: user?.handleColor });
+      }
+      return { ...prev, followers: newFollowers };
+    });
+
+    if (user) {
+      const newFollowingList = isCurrentlyFollowing
+        ? (user.following || []).filter((id: string) => id !== userId)
+        : [...(user.following || []), userId];
+      useAuthStore.getState().setUser({ ...user, following: newFollowingList });
+    }
+
     try {
       await api.users.follow(userId);
-      // Optimistically update
-      setProfile((prev: any) => {
-        let newFollowing = [...prev.following];
-        if (isCurrentlyFollowing) {
-          newFollowing = newFollowing.filter((f: any) => f._id !== userId);
-        } else {
-          // If we follow them, we'd need their full object, but since we are just looking at UI we could refetch
-        }
-        return { ...prev, following: newFollowing };
-      });
-      fetchProfile(); // simplest way to sync
+      // We don't fetchProfile() here to avoid a UI flicker. The optimistic update handles it instantly.
     } catch (err) {
       toast.error("Failed to update follow status");
+      fetchProfile(); // Revert by fetching real state
     }
   };
 

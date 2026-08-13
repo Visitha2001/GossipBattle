@@ -1,9 +1,23 @@
 import { Post } from "./models/Post";
+import { Group } from "./models/Group";
 
 export async function getFeedPosts(userId?: string) {
+  let userGroupIds: any[] = [];
+  if (userId) {
+    const groups = await Group.find({ members: userId }).select("_id").lean();
+    userGroupIds = groups.map(g => g._id);
+  }
+
   // Fetch a pool of recent posts
-  const posts = await Post.find()
+  const posts = await Post.find({
+    $or: [
+      { group: { $exists: false } },
+      { group: null },
+      ...(userGroupIds.length > 0 ? [{ group: { $in: userGroupIds } }] : [])
+    ]
+  })
     .populate("author", "name handle avatar handleColor")
+    .populate("group", "name")
     .sort({ createdAt: -1 })
     .limit(100)
     .lean(); // Plain JS objects

@@ -8,7 +8,7 @@ import EmojiPicker from 'emoji-picker-react';
 
 const FEELINGS = ["Happy", "Excited", "Angry", "Sad", "Cool", "Loved", "Crazy", "Tired"];
 
-export function CreatePostModal({ isOpen, onClose, onPostCreated, editPost }: { isOpen: boolean; onClose: () => void; onPostCreated: () => void; editPost?: any }) {
+export function CreatePostModal({ isOpen, onClose, onPostCreated, editPost, groupId }: { isOpen: boolean; onClose: () => void; onPostCreated: () => void; editPost?: any; groupId?: string }) {
   const { user } = useAuthStore();
   const [content, setContent] = useState(editPost?.content || "");
   const [imageFiles, setImageFiles] = useState<File[]>([]);
@@ -142,7 +142,7 @@ export function CreatePostModal({ isOpen, onClose, onPostCreated, editPost }: { 
       if (editPost) {
         await api.posts.edit(editPost._id, { content, imageUrls: allImageUrls, feeling: feeling || undefined });
       } else {
-        await api.posts.create({ content, imageUrls: allImageUrls, feeling: feeling || undefined });
+        await api.posts.create({ content, imageUrls: allImageUrls, feeling: feeling || undefined, group: groupId });
       }
 
       setContent("");
