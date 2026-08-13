@@ -8,7 +8,7 @@ import { ConfirmModal } from "./ConfirmModal";
 import { ShareModal } from "./ShareModal";
 import { CreatePostModal } from "./CreatePostModal";
 import { ImageSliderModal } from "./ImageSliderModal";
-import { MessageSquare, Share2, Trash2, Eye, Edit2, UserPlus, MoreHorizontal } from "lucide-react";
+import { MessageSquare, Share2, Trash2, Eye, Edit2, UserPlus, MoreHorizontal, Users } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -141,21 +141,26 @@ export function PostCard({ post, onUpdate }: { post: any; onUpdate: () => void }
   const handleFollow = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (!user) return;
+    
+    const currentlyFollowing = isFollowing;
+    
+    // Optimistic update
+    setIsFollowing(!currentlyFollowing);
+    const newFollowing = !currentlyFollowing 
+      ? [...(user.following || []), post.author._id]
+      : (user.following || []).filter(id => id !== post.author._id);
+    useAuthStore.getState().setUser({ ...user, following: newFollowing });
+
     try {
       const res = await api.users.follow(post.author._id);
-      setIsFollowing(res.following);
-      
-      if (user) {
-        const newFollowing = res.following 
-          ? [...(user.following || []), post.author._id]
-          : (user.following || []).filter(id => id !== post.author._id);
-        useAuthStore.getState().setUser({ ...user, following: newFollowing });
-      }
-
-      if (res.following) toast.success(`Followed ${post.author.handle}`);
-      else toast.success(`Unfollowed ${post.author.handle}`);
+      // Optional: sync with server response if needed
+      // setIsFollowing(res.following);
     } catch (err) {
       toast.error("Failed to follow user");
+      // Revert on error
+      setIsFollowing(currentlyFollowing);
+      useAuthStore.getState().setUser({ ...user, following: user.following });
     }
   };
 
@@ -193,6 +198,14 @@ export function PostCard({ post, onUpdate }: { post: any; onUpdate: () => void }
           <div className="flex-1 min-w-0">
             <div className="font-bold flex flex-wrap items-center gap-x-2 gap-y-1">
               <span className="break-words">{post.author?.name}</span>
+              {post.group && (
+                <span className="text-muted-foreground font-normal text-sm flex items-center gap-1">
+                  posted in 
+                  <Link href={`/groups/${post.group._id || post.group}`} onClick={(e) => e.stopPropagation()} className="hover:underline font-bold text-md flex items-center gap-0.5">
+                    <Users size={10} /> {post.group.name || "Group"}
+                  </Link>
+                </span>
+              )}
               {post.feeling && <span className="font-normal text-sm text-muted-foreground">is feeling {post.feeling}</span>}
               {user && user._id !== post.author?._id && (
                 <button

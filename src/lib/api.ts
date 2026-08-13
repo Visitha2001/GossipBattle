@@ -5,7 +5,7 @@ export const api = {
       if (!res.ok) throw new Error("Failed to fetch posts");
       return res.json();
     },
-    create: async (data: { content: string; imageUrls?: string[]; feeling?: string }) => {
+    create: async (data: { content: string; imageUrls?: string[]; feeling?: string; group?: string }) => {
       const res = await fetch("/api/posts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

@@ -26,11 +26,23 @@ export function UserListModal({ isOpen, onClose, title, users, onFollowToggle }:
   );
 
   const handleFollowToggle = async (userId: string) => {
+    if (!currentUser) return;
+    const isCurrentlyFollowing = currentUser.following?.includes(userId);
+    
+    // Optimistic update
+    const newFollowing = isCurrentlyFollowing
+      ? (currentUser.following || []).filter((id: string) => id !== userId)
+      : [...(currentUser.following || []), userId];
+      
+    useAuthStore.getState().setUser({ ...currentUser, following: newFollowing });
+
     try {
       await api.users.follow(userId);
       if (onFollowToggle) onFollowToggle();
     } catch (err) {
       console.error(err);
+      // Revert on error
+      useAuthStore.getState().setUser({ ...currentUser, following: currentUser.following });
     }
   };
 
@@ -80,9 +92,13 @@ export function UserListModal({ isOpen, onClose, title, users, onFollowToggle }:
                 {currentUser && currentUser._id !== u._id && (
                   <button 
                     onClick={() => handleFollowToggle(u._id)}
-                    className="text-xs border border-primary/20 text-primary hover:bg-primary hover:text-primary-foreground px-3 py-1.5 rounded-full transition-colors"
+                    className={`text-xs border px-3 py-1.5 rounded-full transition-colors ${
+                      currentUser?.following?.includes(u._id)
+                        ? "border-muted text-muted-foreground hover:bg-destructive hover:text-destructive-foreground hover:border-destructive"
+                        : "border-primary/20 text-primary hover:bg-primary hover:text-primary-foreground"
+                    }`}
                   >
-                    Follow/Unfollow
+                    {currentUser?.following?.includes(u._id) ? "Unfollow" : "Follow"}
                   </button>
                 )}
               </div>

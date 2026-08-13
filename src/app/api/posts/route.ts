@@ -10,22 +10,24 @@ import { getFeedPosts } from "@/lib/feedAlgorithm";
 
 export async function GET(req: Request) {
   try {
-    await connectDB();
-
     const cookieStore = await cookies();
     const token = cookieStore.get("auth_token")?.value;
-    
     let userId: string | undefined;
+
     if (token) {
       try {
-        const decoded: any = jwt.verify(token, process.env.JWT_SECRET || "");
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || "") as any;
         userId = decoded.userId;
       } catch (e) {
-        // Ignore invalid tokens for feed fetching
+        // invalid token
       }
     }
 
+    await connectDB();
     const posts = await getFeedPosts(userId);
+
+    // Populate group field for each post
+    await Post.populate(posts, { path: "group", select: "name icon" });
 
     return NextResponse.json(posts);
   } catch (error) {
@@ -59,7 +61,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const { content, imageUrls, feeling } = await req.json();
+    const { content, imageUrls, feeling, group } = await req.json();
 
     if (!content) {
       return NextResponse.json(
@@ -73,6 +75,7 @@ export async function POST(req: Request) {
       imageUrls,
       feeling,
       author: user._id,
+      group: group || null,
     });
 
     // Parse Hashtags

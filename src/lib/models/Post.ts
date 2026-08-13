@@ -10,6 +10,7 @@ export interface IPost extends Document {
   downvotes: mongoose.Types.ObjectId[];
   shares: number;
   commentsCount: number;
+  group?: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -25,6 +26,7 @@ const PostSchema = new Schema<IPost>(
     downvotes: [{ type: Schema.Types.ObjectId, ref: "User" }],
     shares: { type: Number, default: 0 },
     commentsCount: { type: Number, default: 0 },
+    group: { type: Schema.Types.ObjectId, ref: "Group" },
   },
   {
     timestamps: true,
