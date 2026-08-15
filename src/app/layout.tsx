@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { GoogleAuthProvider } from "@/components/providers/GoogleAuthProvider";
 import { Header } from "@/components/Header";
+import { MobileNav } from "@/components/MobileNav";
 import { OnboardingModal } from "@/components/OnboardingModal";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -92,6 +93,7 @@ export default function RootLayout({
             <main className="flex-1">
               {children}
             </main>
+            <MobileNav />
             <Toaster />
           </GoogleAuthProvider>
         </ThemeProvider>

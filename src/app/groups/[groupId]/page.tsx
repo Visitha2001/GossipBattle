@@ -5,8 +5,11 @@ import { useAuthStore } from "@/lib/store";
 import { api } from "@/lib/api";
 import { PostCard } from "@/components/PostCard";
 import { CreatePostModal } from "@/components/CreatePostModal";
+import { EditGroupModal } from "@/components/EditGroupModal";
+import { ConfirmModal } from "@/components/ConfirmModal";
+import { ShareModal } from "@/components/ShareModal";
 import { AdminPanel } from "@/components/group/AdminPanel";
-import { Loader2, Users, Camera, Settings, Share2, LogOut } from "lucide-react";
+import { Loader2, Users, Share2, LogOut, Edit2, Trash2, MoreHorizontal, ShieldAlert, X } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
@@ -19,6 +22,12 @@ export default function GroupDetailPage({ params }: { params: Promise<{ groupId:
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isDeletingGroup, setIsDeletingGroup] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   
   const router = useRouter();
 
@@ -76,6 +85,20 @@ export default function GroupDetailPage({ params }: { params: Promise<{ groupId:
     }
   };
 
+  const handleDeleteGroup = async () => {
+    setIsDeletingGroup(true);
+    try {
+      const res = await fetch(`/api/groups/${groupId}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete group");
+      toast.success("Group deleted successfully");
+      router.push('/groups');
+    } catch (error) {
+      toast.error("Error deleting group");
+    } finally {
+      setIsDeletingGroup(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col flex-1 justify-center items-center h-[calc(100vh-4rem)] bg-background">
@@ -119,25 +142,76 @@ export default function GroupDetailPage({ params }: { params: Promise<{ groupId:
               </div>
             </div>
 
-            <div className="flex items-center gap-2 pb-3 sm:pb-4 z-10">
-              <button 
-                onClick={() => {
-                  navigator.clipboard.writeText(window.location.href);
-                  toast.success("Link copied to clipboard!");
-                }}
-                className="bg-muted hover:bg-muted/80 text-foreground px-4 py-2 rounded-full font-medium transition-colors shadow-sm flex items-center gap-2 text-sm"
-              >
-                <Share2 size={16} /> Share
-              </button>
-              
-              {isMember && !isAdmin && (
+            {/* Header Actions & 3-Dots Menu */}
+            <div className="flex items-center gap-2 pb-3 sm:pb-4 z-10 relative">
+              {isMember && (
                 <button 
-                  onClick={handleLeaveGroup}
-                  className="bg-destructive/10 text-destructive hover:bg-destructive/20 px-4 py-2 rounded-full font-medium transition-colors shadow-sm flex items-center gap-2 text-sm"
+                  onClick={() => setIsCreateModalOpen(true)}
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-full font-medium transition-colors shadow-sm text-sm"
                 >
-                  <LogOut size={16} /> Leave
+                  Post to Group
                 </button>
               )}
+
+              {/* Standalone Share Icon Button */}
+              <button 
+                onClick={() => setIsShareModalOpen(true)}
+                className="p-2.5 bg-muted hover:bg-muted/80 text-foreground rounded-full transition-colors shadow-sm flex items-center justify-center"
+                title="Share & Invite"
+              >
+                <Share2 size={18} />
+              </button>
+
+              {/* 3-Dots Menu Dropdown */}
+              <div className="relative">
+                <button 
+                  onClick={() => setIsMenuOpen(!isMenuOpen)}
+                  className="p-2.5 bg-muted hover:bg-muted/80 text-foreground rounded-full transition-colors shadow-sm flex items-center justify-center"
+                  title="Group Options"
+                >
+                  <MoreHorizontal size={18} />
+                </button>
+
+                {isMenuOpen && (
+                  <>
+                    <div className="fixed inset-0 z-30" onClick={() => setIsMenuOpen(false)}></div>
+                    <div className="absolute right-0 mt-2 w-48 bg-card border border-border rounded-xl shadow-xl z-40 overflow-hidden py-1.5 animate-in fade-in zoom-in-95 duration-150">
+                      {isAdmin && (
+                        <>
+                          <button 
+                            onClick={() => { setIsMenuOpen(false); setIsEditModalOpen(true); }}
+                            className="w-full text-left px-4 py-2 text-sm hover:bg-muted flex items-center gap-2.5 text-foreground font-medium transition-colors"
+                          >
+                            <Edit2 size={16} /> Edit Group
+                          </button>
+                          <button 
+                            onClick={() => { setIsMenuOpen(false); setIsAdminModalOpen(true); }}
+                            className="w-full text-left px-4 py-2 text-sm hover:bg-muted flex items-center gap-2.5 text-foreground font-medium transition-colors"
+                          >
+                            <ShieldAlert size={16} /> Manage Members
+                          </button>
+                          <div className="my-1 border-t border-border" />
+                          <button 
+                            onClick={() => { setIsMenuOpen(false); setIsDeleteModalOpen(true); }}
+                            className="w-full text-left px-4 py-2 text-sm text-destructive hover:bg-destructive/10 flex items-center gap-2.5 font-medium transition-colors"
+                          >
+                            <Trash2 size={16} /> Delete Group
+                          </button>
+                        </>
+                      )}
+
+                      {isMember && !isAdmin && (
+                        <button 
+                          onClick={() => { setIsMenuOpen(false); handleLeaveGroup(); }}
+                          className="w-full text-left px-4 py-2 text-sm text-destructive hover:bg-destructive/10 flex items-center gap-2.5 font-medium transition-colors"
+                        >
+                          <LogOut size={16} /> Leave Group
+                        </button>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           </div>
 
@@ -193,7 +267,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ groupId:
                       <span className="text-sm font-medium group-hover:underline truncate flex items-center gap-2">
                         {member.name}
                         {member._id === group.admin._id && (
-                          <span className="text-[10px] bg-primary/20 text-primary px-1 rounded uppercase">Admin</span>
+                          <span className="text-[10px] bg-primary/20 text-primary px-1 rounded uppercase font-semibold">Admin</span>
                         )}
                       </span>
                       <span className="text-xs text-muted-foreground truncate">{member.handle}</span>
@@ -202,15 +276,6 @@ export default function GroupDetailPage({ params }: { params: Promise<{ groupId:
                 ))}
               </div>
             </div>
-            
-            {isAdmin && (
-              <AdminPanel 
-                groupId={group._id} 
-                members={group.members} 
-                onUpdate={fetchGroupData} 
-                adminId={user._id} 
-              />
-            )}
           </div>
         </div>
       </main>
@@ -220,6 +285,58 @@ export default function GroupDetailPage({ params }: { params: Promise<{ groupId:
         onClose={() => setIsCreateModalOpen(false)} 
         onPostCreated={fetchGroupData} 
         groupId={groupId}
+      />
+
+      <EditGroupModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        group={group}
+        onGroupUpdated={fetchGroupData}
+      />
+
+      <ShareModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        url={typeof window !== "undefined" ? window.location.href : ""}
+        groupId={group._id}
+        groupMembers={group.members}
+        title={`Share & Invite to ${group.name}`}
+      />
+
+      {/* Admin Member Management Modal */}
+      {isAdminModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-background w-full max-w-lg rounded-2xl shadow-xl overflow-hidden border border-border animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center p-4 border-b border-border">
+              <h2 className="text-lg font-bold flex items-center gap-2 text-destructive">
+                <ShieldAlert size={20} /> Group Member Controls
+              </h2>
+              <button onClick={() => setIsAdminModalOpen(false)} className="p-2 hover:bg-muted rounded-full transition-colors">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="p-4 max-h-[80vh] overflow-y-auto">
+              <AdminPanel 
+                groupId={group._id} 
+                members={group.members} 
+                onUpdate={fetchGroupData} 
+                adminId={user?._id || ""} 
+                onEditGroup={() => { setIsAdminModalOpen(false); setIsEditModalOpen(true); }}
+                onDeleteGroup={() => { setIsAdminModalOpen(false); setIsDeleteModalOpen(true); }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      <ConfirmModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleDeleteGroup}
+        title="Delete Group"
+        description={`Are you sure you want to delete "${group.name}"? This action cannot be undone and will delete all group content.`}
+        confirmText="Delete Group"
+        isLoading={isDeletingGroup}
       />
     </div>
   );

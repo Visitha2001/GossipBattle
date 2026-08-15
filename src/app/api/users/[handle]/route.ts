@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import { User } from "@/lib/models/User";
 import { Post } from "@/lib/models/Post";
+import { Group } from "@/lib/models/Group";
 import { cookies } from "next/headers";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
@@ -46,9 +47,18 @@ export async function GET(
       (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
     );
 
+    // Get groups user is admin or member of
+    const userGroups = await Group.find({
+      $or: [
+        { admin: profileUser._id },
+        { members: profileUser._id }
+      ]
+    }).populate("admin", "name handle avatar");
+
     return NextResponse.json({
       user: profileUser,
-      posts: allPosts
+      posts: allPosts,
+      groups: userGroups
     });
   } catch (error) {
     console.error("Error fetching user profile:", error);

@@ -4,12 +4,14 @@ import { useEffect, useState, use } from "react";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/lib/store";
 import { PostCard } from "@/components/PostCard";
-import { Loader2, Edit2, Camera, SmilePlus, Search } from "lucide-react";
+import { Loader2, Edit2, Camera, SmilePlus, Search, Users, Trash2, Layers, ShieldCheck, X } from "lucide-react";
 import EmojiPicker from 'emoji-picker-react';
 import { toast } from "sonner";
 import Link from "next/link";
 import { UserListModal } from "@/components/UserListModal";
 import { CreatePostModal } from "@/components/CreatePostModal";
+import { EditGroupModal } from "@/components/EditGroupModal";
+import { ConfirmModal } from "@/components/ConfirmModal";
 
 export default function ProfilePage({ params }: { params: Promise<{ handle: string }> }) {
   const resolvedParams = use(params);
@@ -18,6 +20,7 @@ export default function ProfilePage({ params }: { params: Promise<{ handle: stri
   
   const [profile, setProfile] = useState<any>(null);
   const [posts, setPosts] = useState<any[]>([]);
+  const [groups, setGroups] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [editBio, setEditBio] = useState("");
@@ -27,6 +30,10 @@ export default function ProfilePage({ params }: { params: Promise<{ handle: stri
   const [isFollowingModalOpen, setIsFollowingModalOpen] = useState(false);
   const [followingSearch, setFollowingSearch] = useState("");
   const [followersSearch, setFollowersSearch] = useState("");
+  const [editingGroup, setEditingGroup] = useState<any>(null);
+  const [deletingGroup, setDeletingGroup] = useState<any>(null);
+  const [isDeletingGroup, setIsDeletingGroup] = useState(false);
+  const [isGroupsModalOpen, setIsGroupsModalOpen] = useState(false);
 
   const filteredFollowing = (profile?.following || []).filter((f: any) => 
     f.name?.toLowerCase().includes(followingSearch.toLowerCase()) || 
@@ -45,12 +52,29 @@ export default function ProfilePage({ params }: { params: Promise<{ handle: stri
       const data = await api.users.getProfile(handle);
       setProfile(data.user);
       setPosts(data.posts);
+      setGroups(data.groups || []);
       setEditBio(data.user.bio || "");
     } catch (err) {
       console.error(err);
       toast.error("Failed to load profile");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteGroup = async () => {
+    if (!deletingGroup) return;
+    setIsDeletingGroup(true);
+    try {
+      const res = await fetch(`/api/groups/${deletingGroup._id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete group");
+      toast.success("Group deleted successfully");
+      setDeletingGroup(null);
+      fetchProfile();
+    } catch (error) {
+      toast.error("Error deleting group");
+    } finally {
+      setIsDeletingGroup(false);
     }
   };
 
@@ -217,11 +241,11 @@ export default function ProfilePage({ params }: { params: Promise<{ handle: stri
 
             {/* Follow/Stats section */}
             <div className="flex items-center gap-6 pb-3 sm:pb-4 text-sm z-10">
-              <button onClick={() => setIsFollowersModalOpen(true)} className="flex flex-col items-center hover:opacity-80 transition-opacity">
+              <button onClick={() => setIsFollowersModalOpen(true)} className="flex items-center gap-1.5 hover:opacity-80 transition-opacity">
                 <span className="font-bold text-lg">{profile.followers?.length || 0}</span>
                 <span className="text-muted-foreground">Followers</span>
               </button>
-              <button onClick={() => setIsFollowingModalOpen(true)} className="flex flex-col items-center hover:opacity-80 transition-opacity">
+              <button onClick={() => setIsFollowingModalOpen(true)} className="flex items-center gap-1.5 hover:opacity-80 transition-opacity">
                 <span className="font-bold text-lg">{profile.following?.length || 0}</span>
                 <span className="text-muted-foreground">Following</span>
               </button>
@@ -281,6 +305,30 @@ export default function ProfilePage({ params }: { params: Promise<{ handle: stri
               </div>
             )}
           </div>
+
+          {/* Mobile Action Buttons */}
+          <div className="md:hidden mt-5 overflow-x-auto hide-scrollbar -mx-2 px-2">
+            <div className="flex items-center gap-2 w-max pb-1">
+              <button 
+                onClick={() => setIsFollowersModalOpen(true)}
+                className="bg-card hover:bg-muted border border-border text-foreground px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors shadow-sm flex items-center gap-1.5"
+              >
+                <span className="font-bold text-primary">{profile.followers?.length || 0}</span> Followers
+              </button>
+              <button 
+                onClick={() => setIsFollowingModalOpen(true)}
+                className="bg-card hover:bg-muted border border-border text-foreground px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors shadow-sm flex items-center gap-1.5"
+              >
+                <span className="font-bold text-primary">{profile.following?.length || 0}</span> Following
+              </button>
+              <button 
+                onClick={() => setIsGroupsModalOpen(true)}
+                className="bg-card hover:bg-muted border border-border text-foreground px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors shadow-sm flex items-center gap-1.5"
+              >
+                <Layers size={14} className="text-primary" /> {groups.length} Groups
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Content Section: Posts and Follows */}
@@ -306,7 +354,7 @@ export default function ProfilePage({ params }: { params: Promise<{ handle: stri
             )}
           </div>
 
-          <div className="space-y-6">
+          <div className="hidden md:block space-y-6">
             <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
               <h3 className="font-bold mb-3">Following ({profile.following?.length || 0})</h3>
               
@@ -390,9 +438,116 @@ export default function ProfilePage({ params }: { params: Promise<{ handle: stri
                 )}
               </div>
             </div>
+
+            {/* Groups & Pages Panel */}
+            <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-bold flex items-center gap-1.5 text-base">
+                  <Layers size={18} className="text-primary" /> Groups & Pages ({groups.length})
+                </h3>
+              </div>
+
+              <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+                {groups.length === 0 ? (
+                  <p className="text-sm text-muted-foreground italic">No groups or pages yet.</p>
+                ) : (
+                  groups.map((g: any) => {
+                    const isAdminOfGroup = user && (g.admin?._id === user._id || g.admin === user._id);
+                    return (
+                      <div key={g._id} className="flex items-center justify-between p-2 hover:bg-muted/50 rounded-lg transition-colors group/gitem">
+                        <Link href={`/groups/${g._id}`} className="flex items-center gap-2.5 min-w-0 flex-1">
+                          <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center text-xs text-white font-bold shrink-0 overflow-hidden" style={{ backgroundColor: "var(--primary)" }}>
+                            {g.profileImage ? (
+                              <img src={g.profileImage} alt={g.name} className="w-full h-full object-cover" />
+                            ) : (
+                              g.name.charAt(0).toUpperCase()
+                            )}
+                          </div>
+                          <div className="flex flex-col min-w-0 flex-1">
+                            <span className="text-sm font-medium group-hover/gitem:text-primary transition-colors truncate flex items-center gap-1">
+                              {g.name}
+                              {isAdminOfGroup && (
+                                <span className="text-[10px] bg-primary/20 text-primary px-1 rounded uppercase font-semibold">Admin</span>
+                              )}
+                            </span>
+                            <span className="text-xs text-muted-foreground truncate">{g.category || "General"} • {g.members?.length || 1} members</span>
+                          </div>
+                        </Link>
+
+                        {isOwnProfile && isAdminOfGroup && (
+                          <div className="flex items-center gap-1 opacity-80 group-hover/gitem:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => setEditingGroup(g)}
+                              className="p-1 text-muted-foreground hover:text-primary hover:bg-muted rounded transition-colors"
+                              title="Edit Group"
+                            >
+                              <Edit2 size={14} />
+                            </button>
+                            <button
+                              onClick={() => setDeletingGroup(g)}
+                              className="p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded transition-colors"
+                              title="Delete Group"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </main>
+
+      {/* Mobile Groups Modal */}
+      {isGroupsModalOpen && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm md:hidden">
+          <div className="bg-background border border-border rounded-xl w-full max-w-md max-h-[80vh] flex flex-col overflow-hidden shadow-2xl">
+            <div className="p-4 border-b border-border flex justify-between items-center bg-muted/30">
+              <h3 className="font-bold flex items-center gap-2">
+                <Layers size={18} className="text-primary" /> Groups & Pages
+              </h3>
+              <button onClick={() => setIsGroupsModalOpen(false)} className="p-1.5 hover:bg-muted rounded-full text-muted-foreground transition-colors">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="p-4 overflow-y-auto space-y-3 flex-1">
+              {groups.length === 0 ? (
+                <p className="text-sm text-muted-foreground italic text-center py-8">No groups or pages yet.</p>
+              ) : (
+                groups.map((g: any) => {
+                  const isAdminOfGroup = user && (g.admin?._id === user._id || g.admin === user._id);
+                  return (
+                    <div key={g._id} className="flex items-center justify-between p-2 hover:bg-muted/50 rounded-lg transition-colors group/gitem border border-border/50">
+                      <Link href={`/groups/${g._id}`} className="flex items-center gap-3 min-w-0 flex-1" onClick={() => setIsGroupsModalOpen(false)}>
+                        <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center text-sm text-white font-bold shrink-0 overflow-hidden" style={{ backgroundColor: "var(--primary)" }}>
+                          {g.profileImage ? (
+                            <img src={g.profileImage} alt={g.name} className="w-full h-full object-cover" />
+                          ) : (
+                            g.name.charAt(0).toUpperCase()
+                          )}
+                        </div>
+                        <div className="flex flex-col min-w-0 flex-1">
+                          <span className="text-sm font-bold group-hover/gitem:text-primary transition-colors truncate flex items-center gap-1">
+                            {g.name}
+                            {isAdminOfGroup && (
+                              <span className="text-[10px] bg-primary/20 text-primary px-1 rounded uppercase font-semibold">Admin</span>
+                            )}
+                          </span>
+                          <span className="text-xs text-muted-foreground truncate">{g.category || "General"} • {g.members?.length || 1} members</span>
+                        </div>
+                      </Link>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <UserListModal
         isOpen={isFollowersModalOpen}
@@ -413,6 +568,23 @@ export default function ProfilePage({ params }: { params: Promise<{ handle: stri
         isOpen={isCreateModalOpen} 
         onClose={() => setIsCreateModalOpen(false)} 
         onPostCreated={fetchProfile} 
+      />
+
+      <EditGroupModal
+        isOpen={!!editingGroup}
+        onClose={() => setEditingGroup(null)}
+        group={editingGroup}
+        onGroupUpdated={fetchProfile}
+      />
+
+      <ConfirmModal
+        isOpen={!!deletingGroup}
+        onClose={() => setDeletingGroup(null)}
+        onConfirm={handleDeleteGroup}
+        title="Delete Group"
+        description={`Are you sure you want to delete "${deletingGroup?.name}"? This action cannot be undone.`}
+        confirmText="Delete Group"
+        isLoading={isDeletingGroup}
       />
     </div>
   );
