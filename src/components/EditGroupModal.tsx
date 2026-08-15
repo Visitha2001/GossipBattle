@@ -1,18 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, Loader2, Camera } from "lucide-react";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
 
-interface CreateGroupModalProps {
+interface EditGroupModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onGroupCreated?: () => void;
+  group: any;
+  onGroupUpdated: () => void;
 }
 
-export function CreateGroupModal({ isOpen, onClose, onGroupCreated }: CreateGroupModalProps) {
+export function EditGroupModal({ isOpen, onClose, group, onGroupUpdated }: EditGroupModalProps) {
   const [name, setName] = useState("");
   const [bio, setBio] = useState("");
   const [category, setCategory] = useState("");
@@ -21,9 +21,18 @@ export function CreateGroupModal({ isOpen, onClose, onGroupCreated }: CreateGrou
   const [uploadingCover, setUploadingCover] = useState(false);
   const [uploadingProfile, setUploadingProfile] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const router = useRouter();
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    if (group) {
+      setName(group.name || "");
+      setBio(group.bio || "");
+      setCategory(group.category || "");
+      setCoverImage(group.coverImage || "");
+      setProfileImage(group.profileImage || "");
+    }
+  }, [group]);
+
+  if (!isOpen || !group) return null;
 
   const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || !e.target.files[0]) return;
@@ -61,31 +70,19 @@ export function CreateGroupModal({ isOpen, onClose, onGroupCreated }: CreateGrou
 
     setIsSubmitting(true);
     try {
-      const res = await fetch("/api/groups", {
-        method: "POST",
+      const res = await fetch(`/api/groups/${group._id}`, {
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, bio, category, coverImage, profileImage })
       });
       
-      if (!res.ok) throw new Error("Failed to create group");
+      if (!res.ok) throw new Error("Failed to update group");
       
-      const newGroup = await res.json();
-      toast.success("Group created!");
-      
-      setName("");
-      setBio("");
-      setCategory("");
-      setCoverImage("");
-      setProfileImage("");
+      toast.success("Group updated successfully!");
       onClose();
-      
-      if (onGroupCreated) {
-        onGroupCreated();
-      } else {
-        router.push(`/groups/${newGroup._id}`);
-      }
+      onGroupUpdated();
     } catch (error) {
-      toast.error("Error creating group");
+      toast.error("Error updating group");
     } finally {
       setIsSubmitting(false);
     }
@@ -95,14 +92,14 @@ export function CreateGroupModal({ isOpen, onClose, onGroupCreated }: CreateGrou
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className="bg-background w-full max-w-lg rounded-2xl shadow-xl overflow-hidden border border-border animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
         <div className="flex justify-between items-center p-4 border-b border-border">
-          <h2 className="text-xl font-bold">Create Group</h2>
+          <h2 className="text-xl font-bold">Edit Group</h2>
           <button onClick={onClose} className="p-2 hover:bg-muted rounded-full transition-colors">
             <X size={20} />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-4 space-y-4 overflow-y-auto">
-          {/* Images Picker Header */}
+          {/* Cover & Profile Upload */}
           <div className="relative w-full h-36 bg-muted rounded-xl overflow-hidden border border-border group">
             {coverImage ? (
               <img src={coverImage} alt="Cover Preview" className="w-full h-full object-cover" />
@@ -116,7 +113,6 @@ export function CreateGroupModal({ isOpen, onClose, onGroupCreated }: CreateGrou
               <input type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} />
             </label>
 
-            {/* Profile Image overlay */}
             <div className="absolute left-4 bottom-2 w-16 h-16 rounded-xl border-2 border-background bg-muted flex items-center justify-center overflow-hidden shadow-md group/avatar">
               {profileImage ? (
                 <img src={profileImage} alt="Profile Preview" className="w-full h-full object-cover" />
@@ -137,7 +133,6 @@ export function CreateGroupModal({ isOpen, onClose, onGroupCreated }: CreateGrou
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="w-full border border-input bg-background rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-              placeholder="e.g. Gaming Enthusiasts"
               required
             />
           </div>
@@ -184,7 +179,7 @@ export function CreateGroupModal({ isOpen, onClose, onGroupCreated }: CreateGrou
               className="px-6 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-full text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {isSubmitting && <Loader2 size={16} className="animate-spin" />}
-              Create
+              Save Changes
             </button>
           </div>
         </form>

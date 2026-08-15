@@ -23,6 +23,7 @@ export async function GET(req: Request) {
     await connectDB();
     const notifications = await Notification.find({ user: decoded.userId })
       .populate("actor", "name handle avatar handleColor")
+      .populate("group", "name category profileImage coverImage")
       .sort({ createdAt: -1 })
       .limit(20);
 
