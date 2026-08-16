@@ -101,7 +101,7 @@ export default function GroupsPage() {
     <div className="flex flex-1 bg-background min-h-screen">
       {/* Main Feed */}
       <main className="flex-1 max-w-[700px] mx-auto px-2 md:px-6 py-2 md:py-6 mt-1 md:mt-4 z-10 relative">
-        <div className="flex items-center justify-between mb-4 border-b border-border pb-2">
+        <div className="sticky top-16 z-30 bg-background/95 backdrop-blur pt-2 pb-2 flex items-center justify-between mb-4 border-b border-border">
           <h2 className="text-xl font-bold flex items-center gap-2">
             <Rss size={20} className="text-primary" /> Group Feed
           </h2>
@@ -143,14 +143,14 @@ export default function GroupsPage() {
       {/* Mobile Overlay */}
       {isMobileSidebarOpen && (
         <div 
-          className="fixed inset-0 bg-black/60 z-40 lg:hidden backdrop-blur-sm transition-opacity"
+          className="fixed inset-0 top-16 bg-black/60 z-[90] lg:hidden backdrop-blur-sm transition-opacity"
           onClick={() => setIsMobileSidebarOpen(false)}
         />
       )}
 
       {/* Right Sidebar (Fixed) */}
       <aside className={`
-        fixed right-0 top-0 lg:top-16 bottom-0 z-50 lg:z-20 w-[320px] max-w-[85vw] bg-background border-l border-border flex flex-col overflow-y-auto transition-transform duration-300 ease-in-out
+        fixed right-0 top-16 bottom-0 z-[95] lg:z-20 w-[320px] max-w-[85vw] bg-background border-l border-border flex flex-col overflow-y-auto transition-transform duration-300 ease-in-out
         ${isMobileSidebarOpen ? "translate-x-0 shadow-2xl" : "translate-x-full lg:translate-x-0 lg:shadow-none"}
       `}>
         <div className="p-5 flex-1">

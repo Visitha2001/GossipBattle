@@ -50,7 +50,7 @@ export function GoToTop() {
   return (
     <button
       onClick={scrollToTop}
-      className="fixed bottom-8 right-8 p-3 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-all z-50 animate-in fade-in slide-in-from-bottom-4"
+      className="fixed bottom-20 md:bottom-8 right-8 p-3 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-all z-50 animate-in fade-in slide-in-from-bottom-4"
       aria-label="Go to top"
     >
       <ArrowUp size={24} />
