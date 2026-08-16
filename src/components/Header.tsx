@@ -25,9 +25,6 @@ export function Header() {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsDropdownOpen(false);
       }
-      if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
-        setIsNotificationsOpen(false);
-      }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -127,6 +124,7 @@ export function Header() {
   };
 
   return (
+    <>
     <header className="sticky top-0 z-[100] w-full border-b border-border/50 bg-background/60 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60 transition-colors duration-300">
       <div className="container flex h-16 items-center justify-between mx-auto px-4 md:px-6 gap-2">
         <div className="flex items-center space-x-2 md:space-x-8">
@@ -165,143 +163,6 @@ export function Header() {
                   )}
                 </button>
 
-                {/* Desktop Notifications Overlay */}
-                {isNotificationsOpen && (
-                  <div 
-                    className="fixed inset-0 top-16 bg-black/60 z-[60] backdrop-blur-sm transition-opacity hidden md:block"
-                    onClick={() => setIsNotificationsOpen(false)}
-                  />
-                )}
-                
-                <div 
-                  className={`fixed right-0 top-16 bottom-0 z-[70] w-[380px] max-w-[100vw] bg-background border-l border-border flex flex-col shadow-2xl transition-transform duration-300 ease-in-out hidden md:flex ${isNotificationsOpen ? "translate-x-0" : "translate-x-full"}`}
-                >
-                  <div className="flex items-center justify-between p-4 border-b">
-                    <h4 className="font-bold text-lg flex items-center gap-2"><Bell size={20} className="text-primary"/> Notifications</h4>
-                    <div className="flex items-center gap-2">
-                      {unreadCount > 0 && (
-                        <button onClick={() => handleMarkAsRead()} className="text-xs text-primary hover:underline flex items-center gap-1 font-medium bg-primary/10 px-2 py-1 rounded">
-                          <Check size={14} /> Mark all read
-                        </button>
-                      )}
-                      <button 
-                        onClick={() => setIsNotificationsOpen(false)}
-                        className="p-1 hover:bg-muted rounded-full transition-colors text-muted-foreground"
-                      >
-                        <X size={20} />
-                      </button>
-                    </div>
-                  </div>
-                  <div className="flex-1 overflow-y-auto">
-                    {notifications.length === 0 ? (
-                      <div className="p-12 text-center text-sm text-muted-foreground flex flex-col items-center gap-3">
-                        <Bell className="mx-auto text-muted-foreground/40" size={48} />
-                        No notifications yet.
-                      </div>
-                    ) : (
-                      <div className="divide-y divide-border">
-                        {notifications.map((notif) => (
-                          <div 
-                            key={notif._id} 
-                            onClick={() => {
-                              if (!notif.read) handleMarkAsRead(notif._id);
-                              
-                              if (notif.type === 'follow') {
-                                setIsNotificationsOpen(false);
-                                router.push(`/profile/${notif.actor?.handle}`);
-                              } else if (notif.type === 'group_invite') {
-                                setIsNotificationsOpen(false);
-                                if (notif.group) {
-                                  router.push(`/groups/${notif.group}`);
-                                }
-                              } else if (notif.post) {
-                                setIsNotificationsOpen(false);
-                                let url = `/#${notif.post}`;
-                                if (notif.comment) {
-                                  url = `/?comment=${notif.comment}#${notif.post}`;
-                                }
-                                router.push(url);
-                                
-                                setTimeout(() => {
-                                  const el = document.getElementById(notif.post);
-                                  if (el) {
-                                    el.scrollIntoView({ behavior: 'smooth' });
-                                  }
-                                }, 100);
-                              }
-                            }}
-                            className={`p-3 text-sm cursor-pointer hover:bg-muted/50 transition-colors ${!notif.read ? 'bg-primary/5' : ''}`}
-                          >
-                            <div className="flex gap-2 items-start">
-                              {!notif.read && (
-                                <div className="w-2 h-2 bg-primary rounded-full mt-3 shrink-0" />
-                              )}
-                              {notif.actor?.avatar ? (
-                                <img src={notif.actor.avatar} alt="Avatar" className="h-8 w-8 rounded-full border" />
-                              ) : (
-                                <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-                                  <span className="text-xs font-medium">{notif.actor?.name?.charAt(0)}</span>
-                                </div>
-                              )}
-                              <div>
-                                <p>
-                                  <Link href={`/profile/${notif.actor?.handle}`} onClick={(e) => e.stopPropagation()}>
-                                    <span className="font-semibold hover:underline" style={{ color: notif.actor?.handleColor }}>
-                                      {notif.actor?.name}
-                                    </span>
-                                  </Link>{" "}
-                                  {notif.type === 'mention' && "mentioned you in a post."}
-                                  {notif.type === 'follow' && "started following you."}
-                                  {notif.type === 'comment' && "commented on your post."}
-                                  {notif.type === 'battle' && "joined a battle on your post."}
-                                  {notif.type === 'like' && "liked your post/comment."}
-                                  {notif.type === 'share' && "shared your post."}
-                                  {notif.type === 'group_invite' && (typeof notif.group === 'object' && notif.group?.name ? `invited you to join "${notif.group.name}".` : "invited you to a group.")}
-                                </p>
-                                {notif.type === 'group_invite' && (
-                                  <div className="mt-2 flex items-center gap-2">
-                                    <button 
-                                      onClick={async (e) => {
-                                        e.stopPropagation();
-                                        const targetGroupId = typeof notif.group === 'object' ? notif.group?._id : notif.group;
-                                        try {
-                                          const res = await fetch(`/api/groups/${targetGroupId}/members`, { method: "POST" });
-                                          if (!res.ok) throw new Error("Failed to join");
-                                          toast.success("Joined group!");
-                                          handleMarkAsRead(notif._id);
-                                          setIsNotificationsOpen(false);
-                                          router.push(`/groups/${targetGroupId}`);
-                                        } catch (err) {
-                                          toast.error("Failed to join group");
-                                        }
-                                      }}
-                                      className="bg-primary text-primary-foreground hover:bg-primary/90 px-3 py-1 rounded text-xs font-medium transition-colors shadow-sm"
-                                    >
-                                      Accept
-                                    </button>
-                                    <button 
-                                      onClick={async (e) => {
-                                        e.stopPropagation();
-                                        handleMarkAsRead(notif._id);
-                                        toast.info("Invite declined");
-                                      }}
-                                      className="bg-muted hover:bg-muted/80 text-muted-foreground px-3 py-1 rounded text-xs font-medium transition-colors"
-                                    >
-                                      Decline
-                                    </button>
-                                  </div>
-                                )}
-                                <span className="text-xs text-muted-foreground block mt-1">
-                                  {new Date(notif.createdAt).toLocaleDateString()}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
               </div>
 
 
@@ -373,5 +234,144 @@ export function Header() {
         </div>
       </div>
     </header>
+    
+    {/* Desktop Notifications Sidebar - Rendered outside header stacking context */}
+    {isNotificationsOpen && (
+      <div 
+        className="fixed inset-0 top-16 bg-transparent z-[9998] hidden md:block"
+        onClick={() => setIsNotificationsOpen(false)}
+      />
+    )}
+    
+    <div 
+      className={`fixed right-0 top-16 bottom-0 z-[9999] w-[380px] max-w-[100vw] bg-popover text-popover-foreground border-l border-border flex flex-col shadow-2xl transition-transform duration-300 ease-in-out hidden md:flex ${isNotificationsOpen ? "translate-x-0" : "translate-x-full"}`}
+    >
+      <div className="flex items-center justify-between p-4 border-b">
+        <h4 className="font-bold text-lg flex items-center gap-2"><Bell size={20} className="text-primary"/> Notifications</h4>
+        <div className="flex items-center gap-2">
+          {unreadCount > 0 && (
+            <button onClick={() => handleMarkAsRead()} className="text-xs text-primary hover:underline flex items-center gap-1 font-medium bg-primary/10 px-2 py-1 rounded">
+              <Check size={14} /> Mark all read
+            </button>
+          )}
+          <button 
+            onClick={() => setIsNotificationsOpen(false)}
+            className="p-1 hover:bg-muted rounded-full transition-colors text-muted-foreground"
+          >
+            <X size={20} />
+          </button>
+        </div>
+      </div>
+      <div className="flex-1 overflow-y-auto">
+        {notifications.length === 0 ? (
+          <div className="p-12 text-center text-sm text-muted-foreground flex flex-col items-center gap-3">
+            <Bell className="mx-auto text-muted-foreground/40" size={48} />
+            No notifications yet.
+          </div>
+        ) : (
+          <div className="divide-y divide-border">
+            {notifications.map((notif) => (
+              <div 
+                key={notif._id} 
+                onClick={() => {
+                  if (!notif.read) handleMarkAsRead(notif._id);
+                  
+                  if (notif.type === 'follow') {
+                    setIsNotificationsOpen(false);
+                    router.push(`/profile/${notif.actor?.handle}`);
+                  } else if (notif.type === 'group_invite') {
+                    setIsNotificationsOpen(false);
+                    if (notif.group) {
+                      router.push(`/groups/${notif.group}`);
+                    }
+                  } else if (notif.post) {
+                    setIsNotificationsOpen(false);
+                    let url = `/#${notif.post}`;
+                    if (notif.comment) {
+                      url = `/?comment=${notif.comment}#${notif.post}`;
+                    }
+                    router.push(url);
+                    
+                    setTimeout(() => {
+                      const el = document.getElementById(notif.post);
+                      if (el) {
+                        el.scrollIntoView({ behavior: 'smooth' });
+                      }
+                    }, 100);
+                  }
+                }}
+                className={`p-3 text-sm cursor-pointer hover:bg-muted/50 transition-colors ${!notif.read ? 'bg-primary/5' : ''}`}
+              >
+                <div className="flex gap-2 items-start">
+                  {!notif.read && (
+                    <div className="w-2 h-2 bg-primary rounded-full mt-3 shrink-0" />
+                  )}
+                  {notif.actor?.avatar ? (
+                    <img src={notif.actor.avatar} alt="Avatar" className="h-8 w-8 rounded-full border" />
+                  ) : (
+                    <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                      <span className="text-xs font-medium">{notif.actor?.name?.charAt(0)}</span>
+                    </div>
+                  )}
+                  <div>
+                    <p>
+                      <Link href={`/profile/${notif.actor?.handle}`} onClick={(e) => e.stopPropagation()}>
+                        <span className="font-semibold hover:underline" style={{ color: notif.actor?.handleColor }}>
+                          {notif.actor?.name}
+                        </span>
+                      </Link>{" "}
+                      {notif.type === 'mention' && "mentioned you in a post."}
+                      {notif.type === 'follow' && "started following you."}
+                      {notif.type === 'comment' && "commented on your post."}
+                      {notif.type === 'battle' && "joined a battle on your post."}
+                      {notif.type === 'like' && "liked your post/comment."}
+                      {notif.type === 'share' && "shared your post."}
+                      {notif.type === 'group_invite' && (typeof notif.group === 'object' && notif.group?.name ? `invited you to join "${notif.group.name}".` : "invited you to a group.")}
+                    </p>
+                    {notif.type === 'group_invite' && (
+                      <div className="mt-2 flex items-center gap-2">
+                        <button 
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            const targetGroupId = typeof notif.group === 'object' ? notif.group?._id : notif.group;
+                            try {
+                              const res = await fetch(`/api/groups/${targetGroupId}/members`, { method: "POST" });
+                              if (!res.ok) throw new Error("Failed to join");
+                              toast.success("Joined group!");
+                              handleMarkAsRead(notif._id);
+                              setIsNotificationsOpen(false);
+                              router.push(`/groups/${targetGroupId}`);
+                            } catch (err) {
+                              toast.error("Failed to join group");
+                            }
+                          }}
+                          className="bg-primary text-primary-foreground hover:bg-primary/90 px-3 py-1 rounded text-xs font-medium transition-colors shadow-sm"
+                        >
+                          Accept
+                        </button>
+                        <button 
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            handleMarkAsRead(notif._id);
+                            toast.info("Invite declined");
+                          }}
+                          className="bg-muted hover:bg-muted/80 text-muted-foreground px-3 py-1 rounded text-xs font-medium transition-colors"
+                        >
+                          Decline
+                        </button>
+                      </div>
+                    )}
+                    <span className="text-xs text-muted-foreground block mt-1">
+                      {new Date(notif.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+    </>
   );
 }
