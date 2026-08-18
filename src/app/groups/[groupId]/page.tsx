@@ -101,8 +101,46 @@ export default function GroupDetailPage({ params }: { params: Promise<{ groupId:
 
   if (loading) {
     return (
-      <div className="flex flex-col flex-1 justify-center items-center h-[calc(100vh-4rem)] bg-background">
-        <Loader2 className="animate-spin text-primary" size={32} />
+      <div className="min-h-screen bg-background">
+        <main className="max-w-4xl mx-auto py-4 md:py-6 px-2 md:px-4">
+          <div className="relative w-full h-48 md:h-64 bg-muted rounded-xl shadow-sm animate-pulse" />
+          
+          <div className="relative sm:-mt-2 -mt-18 sm:px-6 pb-6">
+            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 -mt-12 sm:-mt-16 mb-2">
+              <div className="flex items-end gap-4 relative z-10">
+                <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-xl border-4 border-background bg-muted animate-pulse shadow-md" />
+                <div className="pb-3 pt-20 sm:pb-4 space-y-2">
+                  <div className="h-8 w-48 bg-muted animate-pulse rounded" />
+                  <div className="h-4 w-24 bg-muted animate-pulse rounded" />
+                </div>
+              </div>
+            </div>
+            <div className="mt-4 pt-4 border-t border-border/50">
+              <div className="h-4 w-3/4 bg-muted animate-pulse rounded mb-2" />
+              <div className="h-4 w-1/2 bg-muted animate-pulse rounded" />
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-4">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="bg-card border border-border rounded-xl p-4 shadow-sm h-48 animate-pulse flex flex-col gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-muted"></div>
+                    <div className="space-y-2 flex-1">
+                      <div className="h-4 w-32 bg-muted rounded"></div>
+                      <div className="h-3 w-24 bg-muted rounded"></div>
+                    </div>
+                  </div>
+                  <div className="h-16 w-full bg-muted rounded mt-2"></div>
+                </div>
+              ))}
+            </div>
+            <div className="space-y-4 hidden lg:block">
+              <div className="bg-card border border-border rounded-xl p-4 shadow-sm h-32 animate-pulse" />
+            </div>
+          </div>
+        </main>
       </div>
     );
   }
