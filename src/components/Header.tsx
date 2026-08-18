@@ -315,7 +315,7 @@ export function Header() {
                   )}
                   <div>
                     <p>
-                      <Link href={`/profile/${notif.actor?.handle}`} onClick={(e) => e.stopPropagation()}>
+                      <Link href={`/profile/${notif.actor?.handle}`} onClick={(e) => { e.stopPropagation(); setIsNotificationsOpen(false); }}>
                         <span className="font-semibold hover:underline" style={{ color: notif.actor?.handleColor }}>
                           {notif.actor?.name}
                         </span>

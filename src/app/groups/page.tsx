@@ -117,8 +117,19 @@ export default function GroupsPage() {
         </div>
 
         {loadingFeed ? (
-          <div className="flex justify-center items-center py-12">
-            <Loader2 className="animate-spin text-primary" size={28} />
+          <div className="space-y-4 mt-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-card border border-border rounded-xl p-4 shadow-sm h-48 animate-pulse flex flex-col gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-muted"></div>
+                  <div className="space-y-2 flex-1">
+                    <div className="h-4 w-32 bg-muted rounded"></div>
+                    <div className="h-3 w-24 bg-muted rounded"></div>
+                  </div>
+                </div>
+                <div className="h-16 w-full bg-muted rounded mt-2"></div>
+              </div>
+            ))}
           </div>
         ) : feedPosts.length === 0 ? (
           <div className="text-center py-16 bg-card border border-border rounded-xl shadow-sm px-4">
@@ -160,7 +171,7 @@ export default function GroupsPage() {
             </h3>
             <div className="flex items-center gap-2">
               <button 
-                onClick={() => setIsCreateModalOpen(true)}
+                onClick={() => { setIsCreateModalOpen(true); setIsMobileSidebarOpen(false); }}
                 className="bg-primary/10 hover:bg-primary/20 text-primary px-2.5 py-1 rounded-full text-xs font-semibold transition-colors flex items-center gap-1"
               >
                 <Plus size={14} /> New
@@ -178,7 +189,7 @@ export default function GroupsPage() {
             <div className="text-center mt-8">
               <p className="text-sm text-muted-foreground mb-4">You haven't joined or created any groups yet.</p>
               <button 
-                onClick={() => setIsCreateModalOpen(true)}
+                onClick={() => { setIsCreateModalOpen(true); setIsMobileSidebarOpen(false); }}
                 className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-full text-sm font-medium transition-colors"
               >
                 Create your first group
